@@ -193,7 +193,7 @@
     "resources": [
         {
             "apiVersion": "2019-10-01",
-            "name": "${cluster.cluster.start}",
+            "name": "pid-07bfd1f7-83ff-50cd-bd74-61b00a2a6808",
             "type": "Microsoft.Resources/deployments",
             "properties": {
                 "mode": "Incremental",
@@ -470,7 +470,7 @@
         },
         {
             "apiVersion": "2019-10-01",
-            "name": "${cluster.cluster.end}",
+            "name": "pid-f05658d8-329d-55e8-9077-5761b8279b31",
             "type": "Microsoft.Resources/deployments",
             "dependsOn": [
                 "virtualMachineExtensionLoop"
@@ -487,7 +487,7 @@
         },
         {
             "apiVersion": "2019-10-01",
-            "name": "${from.owls-122130-8u131-ol74}",
+            "name": "pid-ac3571f9-c12d-5caa-b886-85734693ab63",
             "type": "Microsoft.Resources/deployments",
 
             "condition": "[if(contains(variables('name_linuxImageOfferSKU'), 'owls-122130-8u131-ol74'), bool('true'), bool('false'))]",
@@ -506,7 +506,7 @@
         },
         {
             "apiVersion": "2019-10-01",
-            "name": "${from.owls-122130-8u131-ol73}",
+            "name": "pid-2bd71be8-b31c-5fbf-96ba-61fde622586d",
             "type": "Microsoft.Resources/deployments",
 
             "condition": "[if(contains(variables('name_linuxImageOfferSKU'), 'from.owls-122130-8u131-ol73'), bool('true'), bool('false'))]",
@@ -525,7 +525,7 @@
         },
         {
             "apiVersion": "2019-10-01",
-            "name": "${from.owls-122140-8u251-ol76}",
+            "name": "pid-dd07bd44-828b-566a-8dc6-b84bf301bf1d",
             "type": "Microsoft.Resources/deployments",
 
             "condition": "[if(contains(variables('name_linuxImageOfferSKU'), 'from.owls-122140-8u251-ol76'), bool('true'), bool('false'))]",
@@ -544,7 +544,7 @@
         },
         {
             "apiVersion": "2019-10-01",
-            "name": "${from.owls-141100-8u251-ol76}",
+            "name": "pid-cb2af004-23c3-5c85-87b9-9de767c7a61e",
             "type": "Microsoft.Resources/deployments",
 
             "condition": "[if(contains(variables('name_linuxImageOfferSKU'), 'owls-141100-8u251-ol76'), bool('true'), bool('false'))]",
@@ -563,7 +563,7 @@
         },
         {
             "apiVersion": "2019-10-01",
-            "name": "${from.owls-141100-11_07-ol76}",
+            "name": "pid-632e8fde-e61f-57bf-af9d-5804bf00ecb3",
             "type": "Microsoft.Resources/deployments",
 
             "condition": "[if(contains(variables('name_linuxImageOfferSKU'), 'owls-141100-11_07-ol76'), bool('true'), bool('false'))]",
