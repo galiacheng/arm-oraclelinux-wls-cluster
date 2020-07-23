@@ -7,7 +7,7 @@
             "metadata": {
                 "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
             },
-            "defaultValue": "${artifactsLocationBase}/arm-oraclelinux-wls-cluster/${git.tag}/deletenode/src/main/"
+            "defaultValue": "https://raw.githubusercontent.com/wls-eng/arm-oraclelinux-wls-cluster/master/deletenode/src/main/"
         },
         "_artifactsLocationSasToken": {
             "type": "securestring",
@@ -95,7 +95,7 @@
     "resources": [
         {
             "apiVersion": "2019-10-01",
-            "name": "${cluster.deletenode.start}",
+            "name": "pid-7d4ae6d6-17c5-5168-b7d2-e0bf33a1e878",
             "type": "Microsoft.Resources/deployments",
             "properties": {
                 "mode": "Incremental",
@@ -127,7 +127,7 @@
         },
         {
             "apiVersion": "2019-10-01",
-            "name": "${cluster.deletenode.end}",
+            "name": "pid-4b263220-3cc6-53b9-aef3-23ad10c45d52",
             "type": "Microsoft.Resources/deployments",
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('adminVMName'), 'newuserscript')]"
