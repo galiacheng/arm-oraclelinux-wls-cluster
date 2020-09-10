@@ -712,9 +712,6 @@ fi
 
 validate_input
 
-echo "check status of admin server"
-wait_for_admin
-
 echo "start to configure ELK"
 setup_javahome
 
