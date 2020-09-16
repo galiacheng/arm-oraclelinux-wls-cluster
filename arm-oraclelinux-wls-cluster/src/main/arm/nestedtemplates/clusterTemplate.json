@@ -377,7 +377,7 @@
             },
             "dependsOn": [
                 "nicLoop",
-                "[concat('Microsoft.Compute/availabilitySets/', variables('name_availabilitySet'))]"
+                "[resourceId('Microsoft.Compute/availabilitySets/', variables('name_availabilitySet'))]"
             ],
             "properties": {
                 "availabilitySet": {
@@ -446,7 +446,7 @@
                 "count": "[parameters('numberOfInstances')]"
             },
             "dependsOn": [
-                "[concat('Microsoft.Compute/virtualMachines/',parameters('adminVMName'))]",
+                "[resourceId('Microsoft.Compute/virtualMachines/',parameters('adminVMName'))]",
                 "virtualMachineLoop"
             ],
             "properties": {
