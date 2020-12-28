@@ -402,6 +402,140 @@
                 "visible": true
             },
             {
+                "name": "section_dnsConfiguration",
+                "type": "Microsoft.Common.Section",
+                "label": "DNS Configuration",
+                "elements": [
+                    {
+                        "name": "dnsConfigurationText",
+                        "type": "Microsoft.Common.TextBlock",
+                        "visible": true,
+                        "options": {
+                            "text": "Selecting 'Yes' here will cause the template to provision Application Gateway using custom DNS Name (example: console.contoso.com)",
+                            "link": {
+                                "label": "Learn more",
+                                "uri": "https://aka.ms/arm-oraclelinux-wls-dns"
+                            }
+                        }
+                    },
+                    {
+                        "name": "enableCustomDNS",
+                        "type": "Microsoft.Common.OptionsGroup",
+                        "visible": true,
+                        "label": "Configure Custom DNS Alias?",
+                        "defaultValue": "No",
+                        "toolTip": "Select 'Yes' to configure Custom DNS Alias.",
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "Yes",
+                                    "value": true
+                                },
+                                {
+                                    "label": "No",
+                                    "value": false
+                                }
+                            ],
+                            "required": false
+                        }
+                    },
+                    {
+                        "name": "customDNSSettings",
+                        "type": "Microsoft.Common.Section",
+                        "label": "DNS Configuration Settings",
+                        "visible": "[bool(steps('section_dnsConfiguration').enableCustomDNS)]",
+                        "elements": [
+                            {
+                                "name": "bringDNSZone",
+                                "type": "Microsoft.Common.OptionsGroup",
+                                "label": "Bring your own Azure DNS Zone",
+                                "defaultValue": "No",
+                                "toolTip": "Select 'Yes' to configure Custom DNS Alias based on your existing Azure DNS Zone, 'No' to create a Azure DNS Zone.",
+                                "constraints": {
+                                    "allowedValues": [
+                                        {
+                                            "label": "Yes",
+                                            "value": true
+                                        },
+                                        {
+                                            "label": "No",
+                                            "value": false
+                                        }
+                                    ],
+                                    "required": false
+                                }
+                            },
+                            {
+                                "name": "createDNSZoneText",
+                                "type": "Microsoft.Common.TextBlock",
+                                "options": {
+                                    "text": "Creating DNS Zone will require you to perform DNS Domain Delegation at your DNS Registry.",
+                                    "link": {
+                                        "label": "Learn more",
+                                        "uri": "https://aka.ms/dns-domain-delegation"
+                                    }
+                                },
+                                "visible": "[not(bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone))]"
+                            },
+                            {
+                                "name": "deplymentScriptInfo",
+                                "type": "Microsoft.Common.TextBlock",
+                                "options": {
+                                    "text": "This option will add records to your DNS Zone to cause Application Gateway accessible. We need a user-assigned managed identity to update your resource group that has Azure DNS Zone deployed. ",
+                                    "link": {
+                                        "label": "Learn more",
+                                        "uri": "https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deployment-script-template"
+                                    }
+                                },
+                                "visible": "[bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone)]"
+                            },
+                            {
+                                "name": "dnszoneName",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "DNS Zone Name",
+                                "defaultValue": "contoso.com",
+                                "toolTip": "Use only letters and numbers and periods to separate Domains",
+                                "constraints": {
+                                    "required": true,
+                                    "regex": "^([0-9a-zA-Z_/-]{1,63}\\.){1,33}[0-9a-zA-Z_/-]{1,63}$",
+                                    "validationMessage": "There must be between 2 and 34 labels. For example, \"contoso.com\" has 2 labels. Each label must contain between 1 and 63 characters."
+                                }
+                            },
+                            {
+                                "name": "dnsZoneResourceGroup",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "Resource group name in current subscription containing the DNS Zone",
+                                "defaultValue": "",
+                                "toolTip": "Use only letters and numbers",
+                                "constraints": {
+                                    "required": true,
+                                    "regex": "^[a-z0-9A-Z.\\-_()]{0,89}([a-z0-9A-Z\\-_()]{1})$",
+                                    "validationMessage": "[if(greater(length(steps('section_dnsConfiguration').existingDNSZonesSettings.dnsZoneResourceGroup), 90),'Resource group names only allow up to 90 characters.', 'Resource group names only allow alphanumeric characters, periods, underscores, hyphens and parenthesis and cannot end in a period.')]"
+                                },
+                                "visible": "[bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone)]"
+                            },
+                            {
+                                "name": "identity",
+                                "type": "Microsoft.ManagedIdentity.IdentitySelector",
+                                "label": "Managed Identity Configuration",
+                                "toolTip": {
+                                    "systemAssignedIdentity": "Enable system assigned identity to grant the resource access to existing DNS Zone resources.",
+                                    "userAssignedIdentity": "Add user assigned identities to grant the resource access to existing DNS Zone resources."
+                                },
+                                "defaultValue": {
+                                    "systemAssignedIdentity": "Off"
+                                },
+                                "options": {
+                                    "hideSystemAssignedIdentity":true,
+                                    "hideUserAssignedIdentity": false
+                                },
+                                "visible": "[bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone)]"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
                 "name": "section_database",
                 "type": "Microsoft.Common.Section",
                 "label": "Database",
@@ -955,9 +1089,10 @@
             "aadsServerHost": "[steps('section_aad').aadInfo.aadsServerHost]",
             "adminPasswordOrKey": "[basics('basicsRequired').adminPasswordOrKey]",
             "adminUsername": "[basics('basicsRequired').adminUsername]",
-            "enableDB": "[bool(steps('section_database').enableDB)]",
             "databaseType": "[steps('section_database').databaseConnectionInfo.databaseType]",
             "dnsLabelPrefix": "[basics('basicsOptional').dnsLabelPrefix]",
+            "dnszoneName": "[steps('section_dnsConfiguration').customDNSSettings.dnszoneName]",
+            "dnszoneResourceGroup": "[steps('section_dnsConfiguration').customDNSSettings.dnsZoneResourceGroup]",
             "dsConnectionURL": "[steps('section_database').databaseConnectionInfo.dsConnectionURL]",
             "dbPassword": "[steps('section_database').databaseConnectionInfo.dbPassword]",
             "dbUser": "[steps('section_database').databaseConnectionInfo.dbUser]",
@@ -968,7 +1103,11 @@
             "enableAppGateway": "[steps('section_appGateway').enableAppGateway]",
             "enableCoherence": "[bool(steps('section_coherence').enableCoherence)]",
             "enableCoherenceWebLocalStorage": "[bool(if(bool(steps('section_coherence').enableCoherence),steps('section_coherence').coherenceInfo.enableCoherenceWebLocalStorage,'false'))]",
+            "enableDB": "[bool(steps('section_database').enableDB)]",
+            "enableDNSConfiguration": "[bool(steps('section_dnsConfiguration').enableCustomDNS)]",
             "enableELK": "[bool(steps('section_elk').enableELK)]",
+            "hasDNSZones": "[bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone)]",
+            "identity": "[steps('section_dnsConfiguration').customDNSSettings.identity]",
             "jdbcDataSourceName": "[steps('section_database').databaseConnectionInfo.jdbcDataSourceName]",
             "logsToIntegrate": "[steps('section_elk').elkInfo.logsToIntegrate]",
             "keyVaultName": "[steps('section_appGateway').keyVaultName]",

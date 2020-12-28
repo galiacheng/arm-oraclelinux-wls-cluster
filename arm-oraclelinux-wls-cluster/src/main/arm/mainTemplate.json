@@ -96,6 +96,14 @@
                 "description": "DNS for ApplicationGateway"
             }
         },
+        "dnszoneName": {
+            "defaultValue": "contoso.xyz",
+            "type": "string"
+        },
+        "dnszoneResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup()]"
+        },
         "elasticsearchEndpoint": {
             "type": "string",
             "defaultValue": "",
@@ -159,6 +167,13 @@
                 "description": "If true, use the supplied parameters to connect the cluster to a pre-provisioned database."
             }
         },
+        "enableDNSConfiguration": {
+            "defaultValue": false,
+            "type": "bool",
+            "metadata": {
+                "description": "If true, use the supplied parameters to configure custome DNS."
+            }
+        },
         "enableELK": {
             "defaultValue": false,
             "type": "bool",
@@ -171,6 +186,19 @@
             "type": "string",
             "metadata": {
                 "description": "Public IP Name for the Application Gateway"
+            }
+        },
+        "hasDNSZones": {
+            "type": "bool",
+            "defaultValue": false
+        },
+        "identity": {
+            "type": "Object",
+            "defaultValue": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "/subscriptions/subscriptionId/resourceGroups/TestResourceGroup/providers/Microsoft.ManagedIdentity/userAssignedIdentities/TestUserIdentity1": {}
+                }
             }
         },
         "jdbcDataSourceName": {
@@ -270,18 +298,18 @@
             }
         },
         "skuUrnVersion": {
-           "type": "string",
-           "defaultValue": "owls-141100-jdk11-ol76;Oracle:weblogic-141100-jdk11-ol76:owls-141100-jdk11-ol7;latest",
-           "allowedValues": [
-              "owls-122130-jdk8-ol73;Oracle:weblogic-122130-jdk8-ol73:owls-122130-jdk8-ol7;latest",
-              "owls-122130-jdk8-ol74;Oracle:weblogic-122130-jdk8-ol74:owls-122130-jdk8-ol7;latest",
-              "owls-122140-jdk8-ol76;Oracle:weblogic-122140-jdk8-ol76:owls-122140-jdk8-ol7;latest",
-              "owls-141100-jdk8-ol76;Oracle:weblogic-141100-jdk8-ol76:owls-141100-jdk8-ol7;latest",
-              "owls-141100-jdk11-ol76;Oracle:weblogic-141100-jdk11-ol76:owls-141100-jdk11-ol7;latest"
-           ],
-           "metadata": {
-              "description": "The Oracle Linux image with Weblogic and Java preinstalled. Semicolon separated string of Sku, URN, and Version"
-           }
+            "type": "string",
+            "defaultValue": "owls-141100-jdk11-ol76;Oracle:weblogic-141100-jdk11-ol76:owls-141100-jdk11-ol7;latest",
+            "allowedValues": [
+                "owls-122130-jdk8-ol73;Oracle:weblogic-122130-jdk8-ol73:owls-122130-jdk8-ol7;latest",
+                "owls-122130-jdk8-ol74;Oracle:weblogic-122130-jdk8-ol74:owls-122130-jdk8-ol7;latest",
+                "owls-122140-jdk8-ol76;Oracle:weblogic-122140-jdk8-ol76:owls-122140-jdk8-ol7;latest",
+                "owls-141100-jdk8-ol76;Oracle:weblogic-141100-jdk8-ol76:owls-141100-jdk8-ol7;latest",
+                "owls-141100-jdk11-ol76;Oracle:weblogic-141100-jdk11-ol76:owls-141100-jdk11-ol7;latest"
+            ],
+            "metadata": {
+                "description": "The Oracle Linux image with Weblogic and Java preinstalled. Semicolon separated string of Sku, URN, and Version"
+            }
         },
         "usePreviewImage": {
             "type": "bool",
@@ -371,11 +399,12 @@
         "const_currentSubscription": "[subscription().subscriptionId]",
         "name_aadLinkedTemplateName": "aadNestedTemplate.json",
         "name_clusterLinkedTemplateName": "clusterTemplate.json",
+        "name_coherenceTemplateName": "coherenceTemplate.json",
         "name_dbLinkedTemplateName": "dbTemplate.json",
+        "name_dnszonesLinkedTemplateName": "dnszonesTemplate.json",
         "name_keyVaultTemplateName": "keyVaultTemplate.json",
         "name_appGatewayLinkedTemplateName": "appGatewayNestedTemplate.json",
-        "name_elkLinkedTemplateName": "elkNestedTemplate.json",
-        "name_coherenceTemplateName": "coherenceTemplate.json"
+        "name_elkLinkedTemplateName": "elkNestedTemplate.json"
     },
     "resources": [
         {
@@ -831,6 +860,52 @@
                         "value": "[parameters('wlsUserName')]"
                     }
                 }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "${azure.apiVersion}",
+            "name": "dnszonesLinkedTemplate",
+            "condition": "[parameters('enableDNSConfiguration')]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/', variables('name_dnszonesLinkedTemplateName')))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "_artifactsLocation": {
+                        "value": "[parameters('_artifactsLocation')]"
+                    },
+                    "_artifactsLocationSasToken": {
+                        "value": "[parameters('_artifactsLocationSasToken')]"
+                    },
+                    "dnszonesARecordSetNames": {
+                        "value": "[createArray(if(parameters('enableAppGateway'), parameters('dnsNameforApplicationGateway'), createArray()))]"
+                    },
+                    "dnszoneName": {
+                        "value": "[parameters('dnszoneName')]"
+                    },
+                    "hasDNSZones": {
+                        "value": "[parameters('hasDNSZones')]"
+                    },
+                    "identity": {
+                        "value": "[parameters('identity')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "resourceGroup": {
+                        "value": "[parameters('dnszoneResourceGroup')]"
+                    },
+                    "targetIPs": {
+                        "value": "[createArray(if(parameters('enableAppGateway'), reference('keyVaultLinkedAppGatewayTemplate', '${azure.apiVersion}').outputs.appGatewayPublicIP.value, createArray()))]"
+                    },
+                    "targetResources": {
+                        "value": "[createArray(if(parameters('enableAppGateway'), parameters('gatewayPublicIPAddressName'), createArray()))]"
+                    }
+                }
+
             }
         },
         {

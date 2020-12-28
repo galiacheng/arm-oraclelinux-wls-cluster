@@ -1,0 +1,178 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "_artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+            }
+        },
+        "_artifactsLocationDNSZonesTemplate": {
+            "defaultValue": "[if(contains(parameters('_artifactsLocation'), 'githubusercontent'), parameters('_artifactsLocation'), deployment().properties.templateLink.uri)]",
+            "type": "string",
+            "metadata": {
+                "description": "If we are deploying from the command line, use the passed in _artifactsLocation, otherwise use the default."
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "defaultValue": "",
+            "type": "securestring",
+            "metadata": {
+                "description": "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated. Use the defaultValue if the staging location is not secured."
+            }
+        },
+        "dnszonesARecordSetNames": {
+            "type": "array",
+            "defaultValue": []
+        },
+        "dnszoneName": {
+            "defaultValue": "contoso.xyz",
+            "type": "string"
+        },
+        "hasDNSZones": {
+            "type": "bool",
+            "defaultValue": false
+        },
+        "identity": {
+            "type": "Object"
+        },
+        "location": {
+            "type": "string",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+        "resourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup()]"
+        },
+        "targetIPs": {
+            "type": "array",
+            "defaultValue": []
+        },
+        "targetResources": {
+            "type": "array",
+            "defaultValue": []
+        },
+        "ttl": {
+            "type": "int",
+            "defaultValue": 3600
+        },
+        "utcValue": {
+            "type": "string",
+            "defaultValue": "[utcNow()]"
+        }
+    },
+    "variables": {
+        "name_createDNSZoneLinkedTemplateName": "createDNSZonesTemplate.json",
+        "name_updateDNSZoneLinkedTemplateName": "updateDNSZonesTemplate.json"
+    },
+    "resources": [
+        {
+            "apiVersion": "${azure.apiVersion}",
+            "name": "${cluster.dns.start}",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                    ]
+                }
+            }
+        },
+        {
+            "apiVersion": "${azure.apiVersion}",
+            "type": "Microsoft.Resources/deployments",
+            "name": "createDNSZone",
+            "condition": "[not(parameters('hasDNSZones'))]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/dnszones/', variables('name_createDNSZoneLinkedTemplateName')))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "dnszonesARecordSetNames": {
+                        "value": "[parameters('dnszonesARecordSetNames')]"
+                    },
+                    "dnszoneName": {
+                        "value": "[parameters('dnszoneName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "targetResources": {
+                        "value": "[parameters('targetResources')]"
+                    },
+                    "ttl": {
+                        "value": "[parameters('ttl')]"
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "${azure.apiVersion}",
+            "type": "Microsoft.Resources/deployments",
+            "name": "updateDNSZone",
+            "condition": "[parameters('hasDNSZones')]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/dnszones/', variables('name_updateDNSZoneLinkedTemplateName')))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "_artifactsLocation": {
+                        "value": "[parameters('_artifactsLocationDNSZonesTemplate')]"
+                    },
+                    "_artifactsLocationSasToken": {
+                        "value": "[parameters('_artifactsLocationSasToken')]"
+                    },
+                    "dnszonesARecordSetNames": {
+                        "value": "[parameters('dnszonesARecordSetNames')]"
+                    },
+                    "dnszoneName": {
+                        "value": "[parameters('dnszoneName')]"
+                    },
+                    "identity": {
+                        "value": "[parameters('identity')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "resourceGroup": {
+                        "value": "[parameters('resourceGroup')]"
+                    },
+                    "targetIPs": {
+                        "value": "[parameters('targetIPs')]"
+                    },
+                    "ttl": {
+                        "value": "[parameters('ttl')]"
+                    },
+                    "utcValue": {
+                        "value": "[parameters('utcValue')]"
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "${azure.apiVersion}",
+            "name": "${cluster.dns.end}",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                    ]
+                }
+            }
+        }
+    ],
+    "outputs": {
+    }
+}

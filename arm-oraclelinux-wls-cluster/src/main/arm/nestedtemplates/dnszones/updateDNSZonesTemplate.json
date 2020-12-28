@@ -1,0 +1,96 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "_artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+            }
+        },
+        "_artifactsLocationDNSZonesTemplate": {
+            "defaultValue": "[if(contains(parameters('_artifactsLocation'), 'githubusercontent'), parameters('_artifactsLocation'), deployment().properties.templateLink.uri)]",
+            "type": "string",
+            "metadata": {
+                "description": "If we are deploying from the command line, use the passed in _artifactsLocation, otherwise use the default."
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "defaultValue": "",
+            "type": "securestring",
+            "metadata": {
+                "description": "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated. Use the defaultValue if the staging location is not secured."
+            }
+        },
+        "dnszonesARecordSetNames": {
+            "type": "array"
+        },
+        "dnszoneName": {
+            "type": "string"
+        },
+        "identity": {
+            "type": "Object"
+        },
+        "location": {
+            "type": "string",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+        "resourceGroup": {
+            "type": "string"
+        },
+        "targetIPs": {
+            "type": "array"
+        },
+        "ttl": {
+            "type": "int",
+            "defaultValue": 3600
+        },
+        "utcValue": {
+            "type": "string",
+            "defaultValue": "[utcNow()]"
+        }
+    },
+    "functions": [
+        {
+            "namespace": "array",
+            "members": {
+                "join": {
+                    "parameters": [
+                        {
+                            "name": "items",
+                            "type": "array"
+                        }
+                    ],
+                    "output": {
+                        "type": "string",
+                        "value": "[replace(replace(replace(string(parameters('items')), '[\"', ''), '\"]', ''), '\",\"', ',')]"
+                    }
+                }
+            }
+        }
+    ],
+    "variables": {
+        "name_scriptDNSConfiguration": "updateDNSZones.sh"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "name": "createDNSRecords",
+            "location": "[parameters('location')]",
+            "identity": "[parameters('identity')]",
+            "kind": "AzureCLI",
+            "properties": {
+                "forceUpdateTag": "[parameters('utcValue')]",
+                "AzCliVersion": "2.15.0",
+                "timeout": "PT30M",
+                "arguments": "[format('{0} {1} {2} {3} {4} {5} {6}', parameters('resourceGroup'), parameters('dnszoneName'), array.join(parameters('dnszonesARecordSetNames')),array.join(parameters('targetIPs')), length(parameters('dnszonesARecordSetNames')), length(parameters('targetIPs')), parameters('ttl'))]",
+                "primaryScriptUri": "[uri(parameters('_artifactsLocationDNSZonesTemplate'), concat('../scripts/', variables('name_scriptDNSConfiguration'), parameters('_artifactsLocationSasToken')))]",
+                "cleanupPreference": "OnSuccess",
+                "retentionInterval": "P1D"
+            }
+        }
+    ]
+}

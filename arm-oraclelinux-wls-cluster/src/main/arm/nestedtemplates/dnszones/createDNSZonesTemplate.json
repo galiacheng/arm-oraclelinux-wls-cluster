@@ -1,0 +1,63 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "dnszonesARecordSetNames": {
+            "type": "array"
+        },
+        "dnszoneName": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+        "targetResources": {
+            "type": "array"
+        },
+        "ttl": {
+            "type": "int",
+            "defaultValue": 3600
+        }
+    },
+    "variables": {
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/dnszones",
+            "apiVersion": "${azure.apiVersionForKeyVault}",
+            "name": "[parameters('dnszoneName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "zoneType": "Public"
+            }
+        },
+        {
+            "type": "Microsoft.Network/dnszones/A",
+            "apiVersion": "${azure.apiVersionForKeyVault}",
+            "name": "[concat(parameters('dnszoneName'), '/', parameters('dnszonesARecordSetNames')[copyIndex()])]",
+            "location": "[parameters('location')]",
+            "copy": {
+                "name": "dnszonesALoop",
+                "count": "[length(parameters('dnszonesARecordSetNames'))]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/dnszones', parameters('dnszoneName'))]"
+            ],
+            "properties": {
+                "TTL": "[parameters('ttl')]",
+                "targetResource": {
+                    "id": "[resourceId('Microsoft.Network/publicIPAddresses/', parameters('targetResources')[copyIndex()])]"
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "dnszonesName": {
+            "type": "string",
+            "value": "[parameters('dnszoneName')]"
+        }
+    }
+}
