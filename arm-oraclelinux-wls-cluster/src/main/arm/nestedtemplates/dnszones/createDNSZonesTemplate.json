@@ -2,11 +2,30 @@
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "_artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "defaultValue": "",
+            "type": "securestring",
+            "metadata": {
+                "description": "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated. Use the defaultValue if the staging location is not secured."
+            }
+        },
         "dnszonesARecordSetNames": {
-            "type": "array"
+            "type": "array",
+            "metadata": {
+                "description": "An array of A record names. Used to create A records."
+            }
         },
         "dnszoneName": {
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "Azure DNS Zone name."
+            }
         },
         "location": {
             "type": "string",
@@ -15,11 +34,17 @@
             }
         },
         "targetResources": {
-            "type": "array"
+            "type": "array",
+            "metadata": {
+                "description": "References to azure resources from where the dns resource value is taken. Each item is corresponding to values of dnszonesARecordSetNames."
+            }
         },
         "ttl": {
             "type": "int",
-            "defaultValue": 3600
+            "defaultValue": 3600,
+            "metadata": {
+                "description": "The TTL (time-to-live) of the records in the record sets."
+            }
         }
     },
     "variables": {
@@ -27,7 +52,7 @@
     "resources": [
         {
             "type": "Microsoft.Network/dnszones",
-            "apiVersion": "${azure.apiVersionForKeyVault}",
+            "apiVersion": "${azure.apiVersionForDNSZone}",
             "name": "[parameters('dnszoneName')]",
             "location": "[parameters('location')]",
             "properties": {
@@ -36,7 +61,7 @@
         },
         {
             "type": "Microsoft.Network/dnszones/A",
-            "apiVersion": "${azure.apiVersionForKeyVault}",
+            "apiVersion": "${azure.apiVersionForDNSZone}",
             "name": "[concat(parameters('dnszoneName'), '/', parameters('dnszonesARecordSetNames')[copyIndex()])]",
             "location": "[parameters('location')]",
             "copy": {

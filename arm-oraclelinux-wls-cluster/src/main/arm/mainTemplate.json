@@ -192,6 +192,10 @@
             "type": "bool",
             "defaultValue": false
         },
+        "hasKeyVaultForAppGateway": {
+            "type": "bool",
+            "defaultValue": false
+        },
         "identity": {
             "type": "Object",
             "defaultValue": {
@@ -213,6 +217,13 @@
             "type": "string",
             "metadata": {
                 "description": "KeyVault Name"
+            }
+        },
+        "keyVaultResourceGroup": {
+            "defaultValue": "",
+            "type": "string",
+            "metadata": {
+                "description": "Resource group name in current subscription containing the KeyVault"
             }
         },
         "keyVaultSku": {
@@ -311,6 +322,10 @@
                 "description": "The Oracle Linux image with Weblogic and Java preinstalled. Semicolon separated string of Sku, URN, and Version"
             }
         },
+        "useExistingAppGatewaySSLCertificate": {
+            "type": "bool",
+            "defaultValue": false
+        },
         "usePreviewImage": {
             "type": "bool",
             "defaultValue": false,
@@ -396,15 +411,18 @@
         }
     },
     "variables": {
-        "const_currentSubscription": "[subscription().subscriptionId]",
+        "const_azureSubjectName": "[format('{0}.{1}.{2}', variables('name_domainLabelforApplicationGateway'), parameters('location'),'.cloudapp.azure.com')]",
+        "const_guidValue": "[guid(resourceGroup().id, deployment().name)]",
         "name_aadLinkedTemplateName": "aadNestedTemplate.json",
+        "name_appGatewayConnector": "keyvaultAppGatewayConnectorTemplate.json",
         "name_clusterLinkedTemplateName": "clusterTemplate.json",
         "name_coherenceTemplateName": "coherenceTemplate.json",
         "name_dbLinkedTemplateName": "dbTemplate.json",
-        "name_dnszonesLinkedTemplateName": "dnszonesTemplate.json",
-        "name_keyVaultTemplateName": "keyVaultTemplate.json",
-        "name_appGatewayLinkedTemplateName": "appGatewayNestedTemplate.json",
-        "name_elkLinkedTemplateName": "elkNestedTemplate.json"
+        "name_dnsNameforApplicationGateway": "[concat(parameters('dnsNameforApplicationGateway'), take(replace(variables('const_guidValue'),'-',''),6))]",
+        "name_dnszonesLinkedTemplateName": "dnszonesAdapterTemplate.json",
+        "name_domainLabelforApplicationGateway": "[concat(variables('name_dnsNameforApplicationGateway'),'-',toLower(resourceGroup().name),'-',toLower(parameters('wlsDomainName')))]",
+        "name_elkLinkedTemplateName": "elkNestedTemplate.json",
+        "name_keyVaultLinkedTemplateName": "keyvaultAdapterTemplate.json"
     },
     "resources": [
         {
@@ -486,44 +504,35 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "${azure.apiVersion}",
-            "name": "keyVaultTemplate",
-            "condition": "[equals(parameters('certificateOption'), 'haveCert')]",
+            "name": "keyVaultLinkedTemplate",
+            "condition": "[and(parameters('enableAppGateway'), not(parameters('hasKeyVaultForAppGateway')))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'clusterLinkedTemplate')]"
+            ],
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/', variables('name_keyVaultTemplateName')))]",
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/', variables('name_keyVaultLinkedTemplateName')))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
-                    "name": {
-                        "value": "[parameters('keyVaultName')]"
+                    "_artifactsLocation": {
+                        "value": "[parameters('_artifactsLocation')]"
+                    },
+                    "identity": {
+                        "value": "[parameters('identity')]"
                     },
                     "location": {
                         "value": "[parameters('location')]"
                     },
-                    "sku": {
-                        "value": "[parameters('keyVaultSku')]"
+                    "subjectName": {
+                        "value": "[format('CN={0}', if(parameters('enableDNSConfiguration'), format('{0}.{1}', parameters('dnsNameforApplicationGateway'), parameters('dnszoneName')), variables('const_azureSubjectName')))]"
                     },
-                    "enabledForTemplateDeployment": {
-                        "value": true
-                    },
-                    "certificateDataName": {
-                        "value": "[parameters('keyVaultSSLCertDataSecretName')]"
-                    },
-                    "certificateDataValue": {
-                        "value": "[parameters('keyVaultSSLCertData')]"
-                    },
-                    "certificatePasswordName": {
-                        "value": "[parameters('keyVaultSSLCertPasswordSecretName')]"
-                    },
-                    "certificatePasswordValue": {
-                        "value": "[parameters('keyVaultSSLCertPassword')]"
+                    "useExistingAppGatewaySSLCertificate": {
+                        "value": "[parameters('useExistingAppGatewaySSLCertificate')]"
                     }
                 }
-            },
-            "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'clusterLinkedTemplate')]"
-            ]
+            }
         },
         {
             "type": "Microsoft.Resources/deployments",
@@ -533,7 +542,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/', variables('name_appGatewayLinkedTemplateName')))]",
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/', variables('name_appGatewayConnector')))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -546,27 +555,38 @@
                     "adminVMName": {
                         "value": "[parameters('adminVMName')]"
                     },
-                    "appGatewaySSLCertificateData": {
-                        "reference": {
-                            "keyVault": {
-                                "id": "[resourceId(variables('const_currentSubscription'),  reference('keyVaultTemplate').outputs.keyVaultResourceGroup.value, 'Microsoft.KeyVault/vaults', reference('keyVaultTemplate').outputs.keyVaultName.value)]"
-                            },
-                            "secretName": "[parameters('keyVaultSSLCertDataSecretName')]"
-                        }
-                    },
-                    "appGatewaySSLCertificatePassword": {
-                        "reference": {
-                            "keyVault": {
-                                "id": "[resourceId(variables('const_currentSubscription'),  reference('keyVaultTemplate').outputs.keyVaultResourceGroup.value, 'Microsoft.KeyVault/vaults', reference('keyVaultTemplate').outputs.keyVaultName.value)]"
-                            },
-                            "secretName": "[parameters('keyVaultSSLCertPasswordSecretName')]"
-                        }
-                    },
-                    "dnsNameforApplicationGateway": {
-                        "value": "[parameters('dnsNameforApplicationGateway')]"
+                    "domainLabelforApplicationGateway": {
+                        "value": "[variables('name_domainLabelforApplicationGateway')]"
                     },
                     "gatewayPublicIPAddressName": {
                         "value": "[parameters('gatewayPublicIPAddressName')]"
+                    },
+                    "hasAppGatewaySSLCertificate": {
+                        "value": "[parameters('useExistingAppGatewaySSLCertificate')]"
+                    },
+                    "hasKeyVaultForAppGateway": {
+                        "value": "[parameters('hasKeyVaultForAppGateway')]"
+                    },
+                    "keyVaultName": {
+                        "value": "[parameters('keyVaultName')]"
+                    },
+                    "keyVaultNamefromDeploymentOutput": {
+                        "value": "[reference('keyVaultLinkedTemplate', '${azure.apiVersion}').outputs.keyVaultName.value]"
+                    },
+                    "keyVaultResourceGroup": {
+                        "value": "[parameters('keyVaultResourceGroup')]"
+                    },
+                    "keyVaultSSLCertDataSecretName": {
+                        "value": "[parameters('keyVaultSSLCertDataSecretName')]"
+                    },
+                    "keyVaultSSLCertDataSecretNamefromDeploymentOutput": {
+                        "value": "[reference('keyVaultLinkedTemplate', '${azure.apiVersion}').outputs.secretNameForCertData.value]"
+                    },
+                    "keyVaultSSLCertPasswordSecretName": {
+                        "value": "[parameters('keyVaultSSLCertPasswordSecretName')]"
+                    },
+                    "keyVaultSSLCertPasswordSecretNamefromDeploymentOutput": {
+                        "value": "[reference('keyVaultLinkedTemplate', '${azure.apiVersion}').outputs.secretNameForCertPassword.value]"
                     },
                     "location": {
                         "value": "[parameters('location')]"
@@ -589,7 +609,7 @@
                 }
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'keyVaultTemplate')]"
+                "[resourceId('Microsoft.Resources/deployments', 'keyVaultLinkedTemplate')]"
             ]
         },
         {
@@ -867,6 +887,9 @@
             "apiVersion": "${azure.apiVersion}",
             "name": "dnszonesLinkedTemplate",
             "condition": "[parameters('enableDNSConfiguration')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'coherenceTemplate')]"
+            ],
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
@@ -898,11 +921,8 @@
                     "resourceGroup": {
                         "value": "[parameters('dnszoneResourceGroup')]"
                     },
-                    "targetIPs": {
-                        "value": "[createArray(if(parameters('enableAppGateway'), reference('keyVaultLinkedAppGatewayTemplate', '${azure.apiVersion}').outputs.appGatewayPublicIP.value, createArray()))]"
-                    },
                     "targetResources": {
-                        "value": "[createArray(if(parameters('enableAppGateway'), parameters('gatewayPublicIPAddressName'), createArray()))]"
+                        "value": "[createArray(if(parameters('enableAppGateway'), resourceId('Microsoft.Network/publicIPAddresses',parameters('gatewayPublicIPAddressName')), createArray()))]"
                     }
                 }
 
@@ -918,7 +938,7 @@
                 "[resourceId('Microsoft.Resources/deployments', 'keyVaultLinkedAppGatewayTemplate')]",
                 "[resourceId('Microsoft.Resources/deployments', 'elkLinkedTemplate')]",
                 "[resourceId('Microsoft.Resources/deployments', 'coherenceTemplate')]",
-                "[resourceId('Microsoft.Resources/deployments', 'keyVaultTemplate')]"
+                "[resourceId('Microsoft.Resources/deployments', 'dnszonesLinkedTemplate')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -950,7 +970,7 @@
         },
         "appGatewayURL": {
             "type": "string",
-            "value": "[if(parameters('enableAppGateway'), reference('keyVaultLinkedAppGatewayTemplate', '${azure.apiVersion}').outputs.appGatewayURL.value, '')]"
+            "value": "[if(parameters('enableAppGateway'), if(parameters('enableDNSConfiguration'), format('{0}.{1}', parameters('dnsNameforApplicationGateway'),parameters('dnszoneName')), reference('keyVaultLinkedAppGatewayTemplate', '${azure.apiVersion}').outputs.appGatewayURL.value),'')]"
         },
         "logIndex": {
             "type": "string",

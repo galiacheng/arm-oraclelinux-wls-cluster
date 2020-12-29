@@ -24,18 +24,30 @@
         },
         "dnszonesARecordSetNames": {
             "type": "array",
-            "defaultValue": []
+            "defaultValue": [],
+            "metadata": {
+                "description": "An array of A record names. Used to create A records."
+            }
         },
         "dnszoneName": {
             "defaultValue": "contoso.xyz",
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "Azure DNS Zone name."
+            }
         },
         "hasDNSZones": {
             "type": "bool",
-            "defaultValue": false
+            "defaultValue": false,
+            "metadata": {
+                "description": "If true, update A records in the existing DNS Zone, otherwise, create a new DNS Zone and ."
+            }
         },
         "identity": {
-            "type": "Object"
+            "type": "Object",
+            "metadata": {
+                "description": "Managed identity to be used for the deployment script. Currently, only user-assigned MSI is supported."
+            }
         },
         "location": {
             "type": "string",
@@ -45,23 +57,31 @@
         },
         "resourceGroup": {
             "type": "string",
-            "defaultValue": "[resourceGroup()]"
-        },
-        "targetIPs": {
-            "type": "array",
-            "defaultValue": []
+            "defaultValue": "[resourceGroup()]",
+            "metadata": {
+                "description": "The resource group name that has an Azure DNS Zone deployed."
+            }
         },
         "targetResources": {
             "type": "array",
-            "defaultValue": []
+            "defaultValue": [],
+            "metadata": {
+                "description": "References to azure resources from where the dns resource value is taken. Each item is corresponding to values of dnszonesARecordSetNames."
+            }
         },
         "ttl": {
             "type": "int",
-            "defaultValue": 3600
+            "defaultValue": 3600,
+            "metadata": {
+                "description": "The TTL (time-to-live) of the records in the record sets."
+            }
         },
         "utcValue": {
             "type": "string",
-            "defaultValue": "[utcNow()]"
+            "defaultValue": "[utcNow()]",
+            "metadata": {
+                "description": "Current deployment time. Used as a tag in deployment script."
+            }
         }
     },
     "variables": {
@@ -146,8 +166,8 @@
                     "resourceGroup": {
                         "value": "[parameters('resourceGroup')]"
                     },
-                    "targetIPs": {
-                        "value": "[parameters('targetIPs')]"
+                    "targetResources": {
+                        "value": "[parameters('targetResources')]"
                     },
                     "ttl": {
                         "value": "[parameters('ttl')]"

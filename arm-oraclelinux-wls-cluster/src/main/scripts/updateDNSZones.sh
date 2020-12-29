@@ -3,13 +3,13 @@
 export resourceGroup=$1
 export zoneName=$2
 export recordSetNames=$3
-export targetIPs=$4
+export targetResources=$4
 export lenRecordset=$5
-export lenTargetIP=$6
+export lenTargets=$6
 export ttl=${7}
 
-if [[ ${lenRecordset} != ${lenTargetIP} ]]; then
-    echo "Error: number of record set names is not equal to that of target IPs."
+if [[ ${lenRecordset} != ${lenTargets} ]]; then
+    echo "Error: number of record set names is not equal to that of target resources."
     exit 1
 fi
 
@@ -21,24 +21,24 @@ nsforTest=$(az network dns record-set ns show -g ${resourceGroup} -z ${zoneName}
 echo name server: ${nsforTest}
 
 recordSetNamesArr=$(echo $recordSetNames | tr "," "\n")
-targetIPsArr=$(echo $targetIPs | tr "," "\n")
+targetResourcesArr=$(echo $targetResources | tr "," "\n")
 
 index=0
 for record in $recordSetNamesArr; do
     count=0
-    for target in $targetIPsArr; do
+    for target in $targetResourcesArr; do
         if [ $count -eq $index ]; then
             echo Create record with name: $record, target IP: $target
-            az network dns record-set a add-record \
+            az network dns record-set a create \
                 -g ${resourceGroup} \
                 -z ${zoneName} \
                 -n ${record} \
-                -a ${target} \
+                --target-resource ${target} \
                 --ttl ${ttl}
 
             nslookup ${record}.${zoneName} ${nsforTest}
             if [ $? -eq 1 ];then
-                echo Error: failed to create record with name: $record, target IP: $target
+                echo Error: failed to create record with name: $record, target Id: $target
             fi
         fi
 

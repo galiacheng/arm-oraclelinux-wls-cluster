@@ -23,13 +23,22 @@
             }
         },
         "dnszonesARecordSetNames": {
-            "type": "array"
+            "type": "array",
+            "metadata": {
+                "description": "An array of A record names. Used to create A records."
+            }
         },
         "dnszoneName": {
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "Azure DNS Zone name."
+            }
         },
         "identity": {
-            "type": "Object"
+            "type": "Object",
+            "metadata": {
+                "description": "Managed identity to be used for the deployment script. Currently, only user-assigned MSI is supported."
+            }
         },
         "location": {
             "type": "string",
@@ -38,18 +47,30 @@
             }
         },
         "resourceGroup": {
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "The resource group name that has an Azure DNS Zone deployed."
+            }
         },
-        "targetIPs": {
-            "type": "array"
+        "targetResources": {
+            "type": "array",
+            "metadata": {
+                "description": "References to azure resources from where the dns resource value is taken. Each item is corresponding to values of dnszonesARecordSetNames."
+            }
         },
         "ttl": {
             "type": "int",
-            "defaultValue": 3600
+            "defaultValue": 3600,
+            "metadata": {
+                "description": "The TTL (time-to-live) of the records in the record sets."
+            }
         },
         "utcValue": {
             "type": "string",
-            "defaultValue": "[utcNow()]"
+            "defaultValue": "[utcNow()]",
+            "metadata": {
+                "description": "Current deployment time. Used as a tag in deployment script."
+            }
         }
     },
     "functions": [
@@ -77,7 +98,7 @@
     "resources": [
         {
             "type": "Microsoft.Resources/deploymentScripts",
-            "apiVersion": "2020-10-01",
+            "apiVersion": "${azure.apiVersionForDeploymentScript}",
             "name": "createDNSRecords",
             "location": "[parameters('location')]",
             "identity": "[parameters('identity')]",
@@ -86,7 +107,7 @@
                 "forceUpdateTag": "[parameters('utcValue')]",
                 "AzCliVersion": "2.15.0",
                 "timeout": "PT30M",
-                "arguments": "[format('{0} {1} {2} {3} {4} {5} {6}', parameters('resourceGroup'), parameters('dnszoneName'), array.join(parameters('dnszonesARecordSetNames')),array.join(parameters('targetIPs')), length(parameters('dnszonesARecordSetNames')), length(parameters('targetIPs')), parameters('ttl'))]",
+                "arguments": "[format('{0} {1} {2} {3} {4} {5} {6}', parameters('resourceGroup'), parameters('dnszoneName'), array.join(parameters('dnszonesARecordSetNames')),array.join(parameters('targetResources')), length(parameters('dnszonesARecordSetNames')), length(parameters('targetResources')), parameters('ttl'))]",
                 "primaryScriptUri": "[uri(parameters('_artifactsLocationDNSZonesTemplate'), concat('../scripts/', variables('name_scriptDNSConfiguration'), parameters('_artifactsLocationSasToken')))]",
                 "cleanupPreference": "OnSuccess",
                 "retentionInterval": "P1D"

@@ -1,0 +1,151 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "_artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+            }
+        },
+        "identity": {
+            "type": "object"
+        },
+        "location": {
+            "type": "string",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+        "permission": {
+            "type": "object",
+            "defaultValue": {
+                "certificates": [
+                    "get",
+                    "list",
+                    "update",
+                    "create"
+                ]
+            }
+        },
+        "subjectName": {
+            "type": "string"
+        },
+        "useExistingAppGatewaySSLCertificate": {
+            "type": "bool",
+            "defaultValue": false
+        }
+    },
+    "variables": {
+        "const_keyVaultName": "[concat('wls-kv-', uniqueString(resourceGroup().id, deployment().name))]",
+        "name_kvWithNewCertTemplateName": "keyvaultWithNewCertTemplate.json"
+    },
+    "resources": [
+        {
+            "apiVersion": "${azure.apiVersion}",
+            "name": "${cluster.dns.start}",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                    ]
+                }
+            }
+        },
+        {
+            "apiVersion": "${azure.apiVersionForDeploymentScript}",
+            "type": "Microsoft.Resources/deployments",
+            "name": "keyVaultwithSelfSignedAppGatewaySSLCert",
+            "condition": "[not(parameters('useExistingAppGatewaySSLCertificate'))]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/keyvault/', variables('name_kvWithNewCertTemplateName')))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "identity": {
+                        "value": "[parameters('identity')]"
+                    },
+                    "keyvaultName": {
+                        "value": "[variables('const_keyVaultName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "permission": {
+                        "value": "[parameters('permission')]"
+                    },
+                    "subjectName": {
+                        "value": "[parameters('subjectName')]"
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "${azure.apiVersionForDeploymentScript}",
+            "type": "Microsoft.Resources/deployments",
+            "name": "keyVaultwithExistingAppGatewaySSLCert",
+            "condition": "[parameters('useExistingAppGatewaySSLCertificate')]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/keyvault/', variables('name_kvWithNewCertTemplateName')))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "identity": {
+                        "value": "[parameters('identity')]"
+                    },
+                    "keyvaultName": {
+                        "value": "[variables('const_keyVaultName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "permission": {
+                        "value": "[parameters('permission')]"
+                    },
+                    "subjectName": {
+                        "value": "[parameters('subjectName')]"
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "${azure.apiVersion}",
+            "name": "${cluster.dns.end}",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                    ]
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "_artifactsLocation": {
+            "type": "string",
+            "value": "[parameters('_artifactsLocation')]"
+        },
+        "keyVaultName": {
+            "type": "string",
+            "value": "[if(parameters('useExistingAppGatewaySSLCertificate'), '', reference('keyVaultwithSelfSignedAppGatewaySSLCert', '${azure.apiVersion}').outputs.keyvaultName.value)]"
+        },
+        "secretNameForCertData": {
+            "type": "string",
+            "value": "[if(parameters('useExistingAppGatewaySSLCertificate'), '', reference('keyVaultwithSelfSignedAppGatewaySSLCert', '${azure.apiVersion}').outputs.secretName.value)]"
+        },
+        "secretNameForCertPassword": {
+            "type": "string",
+            "value": "[if(parameters('useExistingAppGatewaySSLCertificate'), '', '')]"
+        }
+    }
+}

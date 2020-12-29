@@ -36,7 +36,7 @@
 			"type": "string"
 		},
 		"dnsNameforApplicationGateway": {
-			"defaultValue": "wlsgw",
+			"defaultValue": "[format('{0}{1}-{2}-{3}', 'wlsgw',take(replace(parameters('guidValue'),'-',''),6), toLower(resourceGroup().name),toLower(parameters('wlsDomainName')))]",
 			"type": "string",
 			"metadata": {
 				"description": "DNS for ApplicationGateway"
@@ -104,7 +104,6 @@
 		"const_managedVMPrefix": "[concat(parameters('managedServerPrefix'),'VM')]",
 		"const_wlsAdminPort": "7001",
 		"const_wlsHome": "/u01/app/wls/install/oracle/middleware/oracle_home",
-		"name_dnsNameforApplicationGateway": "[concat(parameters('dnsNameforApplicationGateway'), take(replace(parameters('guidValue'),'-',''),6))]",
 		"name_appGateway": "myAppGateway",
 		"name_appGatewayCertificate": "appGwSslCertificate",
 		"name_appGatewaySubnet": "appGatewaySubnet",
@@ -156,7 +155,7 @@
 			"properties": {
 				"publicIPAllocationMethod": "Static",
 				"dnsSettings": {
-					"domainNameLabel": "[concat(variables('name_dnsNameforApplicationGateway'),'-',toLower(resourceGroup().name),'-',toLower(parameters('wlsDomainName')))]"
+					"domainNameLabel": "[parameters('dnsNameforApplicationGateway')]"
 				}
 			}
 		},

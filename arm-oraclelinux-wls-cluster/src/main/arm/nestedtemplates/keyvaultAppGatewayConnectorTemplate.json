@@ -1,0 +1,343 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "_artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "defaultValue": "",
+            "type": "securestring",
+            "metadata": {
+                "description": "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated. Use the defaultValue if the staging location is not secured."
+            }
+        },
+        "adminVMName": {
+            "defaultValue": "adminVM",
+            "type": "string",
+            "metadata": {
+                "description": "Admin Server hosting VM name."
+            }
+        },
+        "domainLabelforApplicationGateway": {
+            "defaultValue": "wlsgw",
+            "type": "string",
+            "metadata": {
+                "description": "DNS for ApplicationGateway"
+            }
+        },
+        "gatewayPublicIPAddressName": {
+            "defaultValue": "gwip",
+            "type": "string",
+            "metadata": {
+                "description": "Public IP Name for the Application Gateway"
+            }
+        },
+        "hasAppGatewaySSLCertificate": {
+            "type": "bool",
+            "defaultValue": false
+        },
+        "hasKeyVaultForAppGateway": {
+            "type": "bool",
+            "defaultValue": false
+        },
+        "keyVaultName": {
+            "defaultValue": "",
+            "type": "string",
+            "metadata": {
+                "description": "KeyVault Name"
+            }
+        },
+        "keyVaultNamefromDeploymentOutput": {
+            "defaultValue": "",
+            "type": "string",
+            "metadata": {
+                "description": "KeyVault Name that output from Key Vault linked template deployment."
+            }
+        },
+        "keyVaultResourceGroup": {
+            "defaultValue": "",
+            "type": "string",
+            "metadata": {
+                "description": "Resource group name in current subscription containing the KeyVault"
+            }
+        },
+        "keyVaultSSLCertDataSecretName": {
+            "defaultValue": "",
+            "type": "string",
+            "metadata": {
+                "description": "The name of the secret in the specified KeyVault whose value is the SSL Certificate Data,"
+            }
+        },
+        "keyVaultSSLCertDataSecretNamefromDeploymentOutput": {
+            "defaultValue": "",
+            "type": "string",
+            "metadata": {
+                "description": "The name of the secret in the specified KeyVault whose value is the SSL Certificate Data, that output from Key Vault linked template deployment."
+            }
+        },
+        "keyVaultSSLCertPasswordSecretName": {
+            "defaultValue": "",
+            "type": "string",
+            "metadata": {
+                "description": "The name of the secret in the specified KeyVault whose value is the password for the SSL Certificate"
+            }
+        },
+        "keyVaultSSLCertPasswordSecretNamefromDeploymentOutput": {
+            "defaultValue": "",
+            "type": "string",
+            "metadata": {
+                "description": "The name of the secret in the specified KeyVault whose value is the password for the SSL Certificate, that output from Key Vault linked template deployment."
+            }
+        },
+        "location": {
+            "defaultValue": "[resourceGroup().location]",
+            "type": "string",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+        "managedServerPrefix": {
+            "defaultValue": "msp",
+            "type": "string",
+            "metadata": {
+                "description": "Provide managed server prefix names"
+            }
+        },
+        "numberOfInstances": {
+            "defaultValue": 2,
+            "type": "int",
+            "minValue": 2,
+            "maxValue": 5,
+            "metadata": {
+                "description": "Number of VMs to deploy, limit 5 since this sample is using a single storage account"
+            }
+        },
+        "wlsDomainName": {
+            "defaultValue": "wlsd",
+            "type": "string",
+            "metadata": {
+                "description": "Provide Weblogic domain name"
+            }
+        },
+        "wlsUserName": {
+            "defaultValue": "weblogic",
+            "type": "string",
+            "metadata": {
+                "description": "Username for your Weblogic domain name"
+            }
+        },
+        "wlsPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for your Weblogic domain name"
+            }
+        }
+    },
+    "variables": {
+        "const_currentSubscription": "[subscription().subscriptionId]",
+        "name_appGatewayLinkedTemplate": "appGatewayNestedTemplate.json"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "${azure.apiVersion}",
+            "name": "appGatewaywithExistingKeyVaultTemplate",
+            "condition": "[parameters('hasKeyVaultForAppGateway')]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/', variables('name_appGatewayLinkedTemplate')))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "_artifactsLocation": {
+                        "value": "[parameters('_artifactsLocation')]"
+                    },
+                    "_artifactsLocationSasToken": {
+                        "value": "[parameters('_artifactsLocationSasToken')]"
+                    },
+                    "adminVMName": {
+                        "value": "[parameters('adminVMName')]"
+                    },
+                    "appGatewaySSLCertificateData": {
+                        "reference": {
+                            "keyVault": {
+                                "id": "[resourceId(variables('const_currentSubscription'),  parameters('keyVaultResourceGroup'), 'Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+                            },
+                            "secretName": "[parameters('keyVaultSSLCertDataSecretName')]"
+                        }
+                    },
+                    "appGatewaySSLCertificatePassword": {
+                        "reference": {
+                            "keyVault": {
+                                "id": "[resourceId(variables('const_currentSubscription'),  parameters('keyVaultResourceGroup'), 'Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+                            },
+                            "secretName": "[parameters('keyVaultSSLCertPasswordSecretName')]"
+                        }
+                    },
+                    "dnsNameforApplicationGateway": {
+                        "value": "[parameters('domainLabelforApplicationGateway')]"
+                    },
+                    "gatewayPublicIPAddressName": {
+                        "value": "[parameters('gatewayPublicIPAddressName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "managedServerPrefix": {
+                        "value": "[parameters('managedServerPrefix')]"
+                    },
+                    "numberOfInstances": {
+                        "value": "[parameters('numberOfInstances')]"
+                    },
+                    "wlsDomainName": {
+                        "value": "[parameters('wlsDomainName')]"
+                    },
+                    "wlsPassword": {
+                        "value": "[parameters('wlsPassword')]"
+                    },
+                    "wlsUserName": {
+                        "value": "[parameters('wlsUserName')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "${azure.apiVersion}",
+            "name": "appGatewaywithExistingSSLCertTemplate",
+            "condition": "[and(not(parameters('hasKeyVaultForAppGateway')), parameters('hasAppGatewaySSLCertificate'))]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/', variables('name_appGatewayLinkedTemplate')))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "_artifactsLocation": {
+                        "value": "[parameters('_artifactsLocation')]"
+                    },
+                    "_artifactsLocationSasToken": {
+                        "value": "[parameters('_artifactsLocationSasToken')]"
+                    },
+                    "adminVMName": {
+                        "value": "[parameters('adminVMName')]"
+                    },
+                    "appGatewaySSLCertificateData": {
+                        "reference": {
+                            "keyVault": {
+                                "id": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultNamefromDeploymentOutput'))]"
+                            },
+                            "secretName": "[parameters('keyVaultSSLCertDataSecretNamefromDeploymentOutput')]"
+                        }
+                    },
+                    "appGatewaySSLCertificatePassword": {
+                        "reference": {
+                            "keyVault": {
+                                "id": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultNamefromDeploymentOutput'))]"
+                            },
+                            "secretName": "[parameters('keyVaultSSLCertPasswordSecretNamefromDeploymentOutput')]"
+                        }
+                    },
+                    "dnsNameforApplicationGateway": {
+                        "value": "[parameters('domainLabelforApplicationGateway')]"
+                    },
+                    "gatewayPublicIPAddressName": {
+                        "value": "[parameters('gatewayPublicIPAddressName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "managedServerPrefix": {
+                        "value": "[parameters('managedServerPrefix')]"
+                    },
+                    "numberOfInstances": {
+                        "value": "[parameters('numberOfInstances')]"
+                    },
+                    "wlsDomainName": {
+                        "value": "[parameters('wlsDomainName')]"
+                    },
+                    "wlsPassword": {
+                        "value": "[parameters('wlsPassword')]"
+                    },
+                    "wlsUserName": {
+                        "value": "[parameters('wlsUserName')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "${azure.apiVersion}",
+            "name": "appGatewaywithSelfSignedSSLCertTemplate",
+            "condition": "[and(not(parameters('hasKeyVaultForAppGateway')), not(parameters('hasAppGatewaySSLCertificate')))]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/', variables('name_appGatewayLinkedTemplate')))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "_artifactsLocation": {
+                        "value": "[parameters('_artifactsLocation')]"
+                    },
+                    "_artifactsLocationSasToken": {
+                        "value": "[parameters('_artifactsLocationSasToken')]"
+                    },
+                    "adminVMName": {
+                        "value": "[parameters('adminVMName')]"
+                    },
+                    "appGatewaySSLCertificateData": {
+                        "reference": {
+                            "keyVault": {
+                                "id": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultNamefromDeploymentOutput'))]"
+                            },
+                            "secretName": "[parameters('keyVaultSSLCertDataSecretNamefromDeploymentOutput')]"
+                        }
+                    },
+                    "appGatewaySSLCertificatePassword": {
+                        "value": ""
+                    },
+                    "dnsNameforApplicationGateway": {
+                        "value": "[parameters('domainLabelforApplicationGateway')]"
+                    },
+                    "gatewayPublicIPAddressName": {
+                        "value": "[parameters('gatewayPublicIPAddressName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "managedServerPrefix": {
+                        "value": "[parameters('managedServerPrefix')]"
+                    },
+                    "numberOfInstances": {
+                        "value": "[parameters('numberOfInstances')]"
+                    },
+                    "wlsDomainName": {
+                        "value": "[parameters('wlsDomainName')]"
+                    },
+                    "wlsPassword": {
+                        "value": "[parameters('wlsPassword')]"
+                    },
+                    "wlsUserName": {
+                        "value": "[parameters('wlsUserName')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "appGatewayPublicIP": {
+            "type": "string",
+            "value": "[if(parameters('hasKeyVaultForAppGateway'),reference('appGatewaywithExistingKeyVaultTemplate', '${azure.apiVersion}').outputs.appGatewayPublicIP.value, if(parameters('hasAppGatewaySSLCertificate'),reference('appGatewaywithExistingSSLCertTemplate', '${azure.apiVersion}').outputs.appGatewayPublicIP.value, reference('appGatewaywithSelfSignedSSLCertTemplate', '${azure.apiVersion}').outputs.appGatewayPublicIP.value))]"
+        },
+        "appGatewayURL": {
+            "type": "string",
+            "value": "[if(parameters('hasKeyVaultForAppGateway'),reference('appGatewaywithExistingKeyVaultTemplate', '${azure.apiVersion}').outputs.appGatewayURL.value, if(parameters('hasAppGatewaySSLCertificate'),reference('appGatewaywithExistingSSLCertTemplate', '${azure.apiVersion}').outputs.appGatewayURL.value, reference('appGatewaywithSelfSignedSSLCertTemplate', '${azure.apiVersion}').outputs.appGatewayURL.value))]"
+        }
+    }
+}

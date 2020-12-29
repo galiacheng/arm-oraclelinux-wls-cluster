@@ -469,25 +469,23 @@
                                 "name": "createDNSZoneText",
                                 "type": "Microsoft.Common.TextBlock",
                                 "options": {
-                                    "text": "Creating DNS Zone will require you to perform DNS Domain Delegation at your DNS Registry.",
+                                    "text": "If you don't bring an Azure DNS Zone, creating DNS Zone will require you to perform DNS Domain Delegation at your DNS Registry.",
                                     "link": {
                                         "label": "Learn more",
                                         "uri": "https://aka.ms/dns-domain-delegation"
                                     }
-                                },
-                                "visible": "[not(bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone))]"
+                                }
                             },
                             {
                                 "name": "deplymentScriptInfo",
                                 "type": "Microsoft.Common.TextBlock",
                                 "options": {
-                                    "text": "This option will add records to your DNS Zone to cause Application Gateway accessible. We need a user-assigned managed identity to update your resource group that has Azure DNS Zone deployed. ",
+                                    "text": "Bring Azure DNS Zone option will add records to your DNS Zone to cause Application Gateway accessible. We need a user-assigned managed identity to update your resource group that has Azure DNS Zone deployed. ",
                                     "link": {
                                         "label": "Learn more",
                                         "uri": "https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deployment-script-template"
                                     }
-                                },
-                                "visible": "[bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone)]"
+                                }
                             },
                             {
                                 "name": "dnszoneName",
