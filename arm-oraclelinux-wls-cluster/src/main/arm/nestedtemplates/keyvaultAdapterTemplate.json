@@ -8,7 +8,7 @@
                 "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
             }
         },
-        "_artifactsLocationSasToken": {
+         "_artifactsLocationSasToken": {
             "defaultValue": "",
             "type": "securestring",
             "metadata": {
@@ -147,7 +147,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/keyvault/', variables('name_kvWithExistingCertTemplateName')))]",
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/keyvault/', variables('name_kvWithExistingCertTemplateName'), parameters('_artifactsLocationSasToken')))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
