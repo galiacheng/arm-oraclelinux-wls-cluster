@@ -533,12 +533,6 @@
                     "location": {
                         "value": "[parameters('location')]"
                     },
-                    "secretNameforCertificateData": {
-                        "value": "[parameters('keyVaultSSLCertDataSecretName')]"
-                    },
-                    "secretNameforCertificatePassword": {
-                        "value": "[parameters('keyVaultSSLCertPasswordSecretName')]"
-                    },
                     "sku": {
                         "value": "[parameters('keyVaultSku')]"
                     },

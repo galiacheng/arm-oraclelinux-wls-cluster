@@ -54,20 +54,6 @@
                 ]
             }
         },
-        "secretNameforCertificateData": {
-            "type": "string",
-            "metadata": {
-                "description": "Secret name of certificate data."
-            },
-            "defaultValue": "myAppGatewaySSLCertificate"
-        },
-        "secretNameforCertificatePassword": {
-            "type": "string",
-            "metadata": {
-                "description": "Secret name of certificate password."
-            },
-            "defaultValue": "myAppGatewaySSLCertificatePassword"
-        },
         "sku": {
             "type": "string",
             "metadata": {
@@ -86,7 +72,9 @@
     "variables": {
         "const_keyVaultName": "[concat('wls-kv-', uniqueString(resourceGroup().id, deployment().name))]",
         "name_kvWithExistingCertTemplateName": "keyvaultWithExistingCertTemplate.json",
-        "name_kvWithNewCertTemplateName": "keyvaultWithNewCertTemplate.json"
+        "name_kvWithNewCertTemplateName": "keyvaultWithNewCertTemplate.json",
+        "name_sslCertSecretName": "myAppGatewaySSLCert",
+        "name_sslCertPasswordSecretName": "myAppGatewaySSLCertPassword"
     },
     "resources": [
         {
@@ -127,9 +115,6 @@
                     "permission": {
                         "value": "[parameters('permission')]"
                     },
-                    "secretName": {
-                        "value": "[parameters('secretNameforCertificateData')]"
-                    },
                     "subjectName": {
                         "value": "[parameters('subjectName')]"
                     },
@@ -152,13 +137,13 @@
                 },
                 "parameters": {
                     "certificateDataName": {
-                        "value": "[parameters('secretNameforCertificateData')]"
+                        "value": "[variables('name_sslCertSecretName')]"
                     },
                     "certificateDataValue": {
                         "value": "[parameters('certificateDataValue')]"
                     },
                     "certificatePasswordName": {
-                        "value": "[parameters('secretNameforCertificatePassword')]"
+                        "value": "[variables('name_sslCertPasswordSecretName')]"
                     },
                     "certificatePasswordValue": {
                         "value": "[parameters('certificatePasswordValue')]"
