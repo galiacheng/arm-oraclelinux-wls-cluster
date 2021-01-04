@@ -1,182 +1,111 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "identity": {
-            "type": "object",
+        "certificateDataName": {
+            "type": "string",
             "metadata": {
-                "description": "Managed identity to be used for the deployment script. Currently, only user-assigned MSI is supported."
+                "description": "Secret name of certificate data."
             }
         },
-        "keyvaultName": {
+        "certificateDataValue": {
             "type": "string",
-            "defaultValue": "[concat('wls-kv-', uniqueString(resourceGroup().id, deployment().name))]",
             "metadata": {
-                "description": "Used to name the new Azure Key Vault resoure."
+                "description": "Certificate data to store in the secret"
             }
+        },
+        "certificatePasswordName": {
+            "type": "string",
+            "metadata": {
+                "description": "Secret name of certificate password."
+            }
+        },
+        "certificatePasswordValue": {
+            "type": "string",
+            "metadata": {
+                "description": "Certificate password to store in the secret"
+            }
+        },
+        "enabledForTemplateDeployment": {
+            "type": "bool",
+            "metadata": {
+                "description": "Property to specify whether Azure Resource Manager is permitted to retrieve secrets from the key vault."
+            },
+            "defaultValue": true
         },
         "location": {
             "type": "string",
             "metadata": {
-                "description": "Location for all resources."
+                "description": "The supported Azure location where the key vault should be created."
             }
         },
-        "permission": {
-            "type": "object",
-            "defaultValue": {
-                "certificates": [
-                    "get",
-                    "list",
-                    "update",
-                    "create"
-                ]
-            },
-            "metadata": {
-                "description": "Access permission of the key vault, will applied to all access policies."
-            }
-        },
-        "secretName": {
-            "type": "string",
-            "defaultValue": "mySelfSignedCertificate",
-            "metadata": {
-                "description": "Used to name the new certificate resource."
-            }
-        },
-        "subjectName": {
+        "name": {
             "type": "string",
             "metadata": {
-                "description": "Subject name to create a new certificate, example: 'CN=contoso.com'."
+                "description": "Name of the vault"
             }
         },
-        "utcValue": {
+        "sku": {
             "type": "string",
-            "defaultValue": "[utcNow()]"
+            "metadata": {
+                "description": "Price tier for Key Vault."
+            }
         }
     },
-    "functions": [
-        {
-            "namespace": "identity",
-            "members": {
-                "getId": {
-                    "parameters": [
-                        {
-                            "name": "items",
-                            "type": "object"
-                        }
-                    ],
-                    "output": {
-                        "type": "string",
-                        "value": "[if(empty(parameters('items').userAssignedIdentities), '', substring(string(parameters('items').userAssignedIdentities),add(indexOf(string(parameters('items').userAssignedIdentities),'\"'),1),sub(lastIndexOf(string(parameters('items').userAssignedIdentities), '\"'),add(indexOf(string(parameters('items').userAssignedIdentities),'\"'),1))))]"
-                    }
-                }
-            }
-        }
-    ],
-    "variables": {
-    },
+    "variables": {},
     "resources": [
         {
-            "type": "Microsoft.KeyVault/vaults",
-            "apiVersion": "${azure.apiVersionForKeyVault}",
-            "name": "[parameters('keyvaultName')]",
+            "apiVersion": "${azure.apiVersion}",
+            "name": "[parameters('name')]",
             "location": "[parameters('location')]",
+            "type": "Microsoft.KeyVault/vaults",
             "properties": {
+                "enabledForTemplateDeployment": "[parameters('enabledForTemplateDeployment')]",
                 "sku": {
-                    "family": "A",
-                    "name": "Standard"
+                    "name": "[parameters('sku')]",
+                    "family": "A"
                 },
-                "tenantId": "[subscription().tenantId]",
-                "accessPolicies": [
-                    {
-                        "objectId": "[reference(string(identity.getId(parameters('identity'))), '2018-11-30').principalId]",
-                        "tenantId": "[subscription().tenantId]",
-                        "permissions": "[parameters('permission')]"
-                    }
-                ],
-                "enabledForDeployment": false,
-                "enabledForDiskEncryption": false,
-                "enabledForTemplateDeployment": true,
-                "enableSoftDelete": true
+                "accessPolicies": [],
+                "tenantId": "[subscription().tenantId]"
             }
         },
         {
-            "type": "Microsoft.Resources/deploymentScripts",
-            "apiVersion": "${azure.apiVersionForDeploymentScript}",
-            "name": "createAddCertificate",
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "${azure.apiVersion}",
+            "name": "[concat(parameters('name'), '/', parameters('certificateDataName'))]",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyvaultName'))]"
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('name'))]"
             ],
-            "identity": "[parameters('identity')]",
-            "kind": "AzurePowerShell",
             "properties": {
-                "forceUpdateTag": "[parameters('utcValue')]",
-                "azPowerShellVersion": "5.0",
-                "timeout": "PT30M",
-                "arguments": "[format(' -vaultName {0} -certificateName {1} -subjectName {2}', parameters('keyvaultName'), parameters('secretName'), parameters('subjectName'))]",
-                "scriptContent": "
-                    param(
-                        [string] [Parameter(Mandatory=$true)] $vaultName,
-                        [string] [Parameter(Mandatory=$true)] $certificateName,
-                        [string] [Parameter(Mandatory=$true)] $subjectName
-                    )
-
-                    $ErrorActionPreference = 'Stop'
-                    $DeploymentScriptOutputs = @{}
-
-                    $existingCert = Get-AzKeyVaultCertificate -VaultName $vaultName -Name $certificateName
-
-                    if ($existingCert -and $existingCert.Certificate.Subject -eq $subjectName) {
-
-                        Write-Host 'Certificate $certificateName in vault $vaultName is already present.'
-
-                        $DeploymentScriptOutputs['certThumbprint'] = $existingCert.Thumbprint
-                        $existingCert | Out-String
-                    }
-                    else {
-                        $policy = New-AzKeyVaultCertificatePolicy -SubjectName $subjectName -IssuerName Self -ValidityInMonths 12 -Verbose
-
-                        # private key is added as a secret that can be retrieved in the ARM template
-                        Add-AzKeyVaultCertificate -VaultName $vaultName -Name $certificateName -CertificatePolicy $policy -Verbose
-
-                        $newCert = Get-AzKeyVaultCertificate -VaultName $vaultName -Name $certificateName
-
-                        # it takes a few seconds for KeyVault to finish
-                        $tries = 0
-                        do {
-                        Write-Host 'Waiting for certificate creation completion...'
-                        Start-Sleep -Seconds 10
-                        $operation = Get-AzKeyVaultCertificateOperation -VaultName $vaultName -Name $certificateName
-                        $tries++
-
-                        if ($operation.Status -eq 'failed')
-                        {
-                            throw 'Creating certificate $certificateName in vault $vaultName failed with error $($operation.ErrorMessage)'
-                        }
-
-                        if ($tries -gt 120)
-                        {
-                            throw 'Timed out waiting for creation of certificate $certificateName in vault $vaultName'
-                        }
-                        } while ($operation.Status -ne 'completed')
-
-                        $DeploymentScriptOutputs['certThumbprint'] = $newCert.Thumbprint
-                        $newCert | Out-String
-                    }
-                ",
-                "cleanupPreference": "OnSuccess",
-                "retentionInterval": "P1D"
+                "value": "[parameters('certificateDataValue')]"
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "${azure.apiVersion}",
+            "name": "[concat(parameters('name'), '/', parameters('certificatePasswordName'))]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('name'))]"
+            ],
+            "properties": {
+                "value": "[parameters('certificatePasswordValue')]"
             }
         }
     ],
     "outputs": {
-        "keyvaultName": {
+        "keyVaultName": {
             "type": "string",
-            "value": "[parameters('keyvaultName')]"
+            "value": "[parameters('name')]"
         },
-        "secretName": {
+        "sslCertDataSecretName": {
             "type": "string",
-            "value": "[parameters('secretName')]"
+            "value": "[parameters('certificateDataName')]"
+        },
+        "secretNameForCertPassword": {
+            "type": "string",
+            "value": "[parameters('certificatePasswordName')]"
         }
     }
 }

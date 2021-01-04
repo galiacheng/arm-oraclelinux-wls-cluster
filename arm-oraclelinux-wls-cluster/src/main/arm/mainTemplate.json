@@ -54,6 +54,32 @@
                 "description": "Admin Server hosting VM name."
             }
         },
+        "appGatewayCertificateOption": {
+            "defaultValue": "",
+            "type": "string",
+            "metadata": {
+                "description": "Three scenarios we support for deploying app gateway"
+            },
+            "allowedValues": [
+                "haveKeyVault",
+                "haveCert",
+                "generateCert"
+            ]
+        },
+        "appGatewaySSLCertData": {
+            "defaultValue": "",
+            "type": "string",
+            "metadata": {
+                "description": "The value of the SSL Certificate Data"
+            }
+        },
+        "appGatewaySSLCertPassword": {
+            "defaultValue": "",
+            "type": "string",
+            "metadata": {
+                "description": "The value of the password for the SSL Certificate"
+            }
+        },
         "databaseType": {
             "defaultValue": "",
             "type": "string",
@@ -132,13 +158,6 @@
                 "description": "Bool value, if it's set to true, will enable Azure Active Directory after WebLogic Server starts."
             }
         },
-        "certificateOption": {
-            "defaultValue": "",
-            "type": "string",
-            "metadata": {
-                "description": "Three senarios we support for deploying app gateway"
-            }
-        },
         "enableAppGateway": {
             "defaultValue": false,
             "type": "bool",
@@ -192,10 +211,6 @@
             "type": "bool",
             "defaultValue": false
         },
-        "hasKeyVaultForAppGateway": {
-            "type": "bool",
-            "defaultValue": false
-        },
         "identity": {
             "type": "Object",
             "defaultValue": {
@@ -240,25 +255,11 @@
                 "description": "The name of the secret in the specified KeyVault whose value is the SSL Certificate Data"
             }
         },
-        "keyVaultSSLCertData": {
-            "defaultValue": "",
-            "type": "string",
-            "metadata": {
-                "description": "The value of the SSL Certificate Data"
-            }
-        },
         "keyVaultSSLCertPasswordSecretName": {
             "defaultValue": "",
             "type": "string",
             "metadata": {
                 "description": "The name of the secret in the specified KeyVault whose value is the password for the SSL Certificate"
-            }
-        },
-        "keyVaultSSLCertPassword": {
-            "defaultValue": "",
-            "type": "string",
-            "metadata": {
-                "description": "The value of the password for the SSL Certificate"
             }
         },
         "location": {
@@ -321,10 +322,6 @@
             "metadata": {
                 "description": "The Oracle Linux image with Weblogic and Java preinstalled. Semicolon separated string of Sku, URN, and Version"
             }
-        },
-        "useExistingAppGatewaySSLCertificate": {
-            "type": "bool",
-            "defaultValue": false
         },
         "usePreviewImage": {
             "type": "bool",
@@ -411,6 +408,8 @@
         }
     },
     "variables": {
+        "const_appGatewaySSLCertOptionHaveCert": "haveCert",
+        "const_appGatewaySSLCertOptionHaveKeyVault": "haveKeyVault",
         "const_azureSubjectName": "[format('{0}.{1}.{2}', variables('name_domainLabelforApplicationGateway'), parameters('location'),'.cloudapp.azure.com')]",
         "const_guidValue": "[guid(resourceGroup().id, deployment().name)]",
         "name_aadLinkedTemplateName": "aadNestedTemplate.json",
@@ -505,7 +504,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "${azure.apiVersion}",
             "name": "keyVaultLinkedTemplate",
-            "condition": "[and(parameters('enableAppGateway'), not(parameters('hasKeyVaultForAppGateway')))]",
+            "condition": "[and(parameters('enableAppGateway'), not(equals(parameters('appGatewayCertificateOption'), variables('const_appGatewaySSLCertOptionHaveKeyVault'))))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'clusterLinkedTemplate')]"
             ],
@@ -519,17 +518,32 @@
                     "_artifactsLocation": {
                         "value": "[parameters('_artifactsLocation')]"
                     },
+                    "certificateDataValue": {
+                        "value": "[parameters('appGatewaySSLCertData')]"
+                    },
+                    "certificatePasswordValue": {
+                        "value": "[parameters('appGatewaySSLCertPassword')]"
+                    },
                     "identity": {
                         "value": "[parameters('identity')]"
                     },
                     "location": {
                         "value": "[parameters('location')]"
                     },
+                    "secretNameforCertificateData": {
+                        "value": "[parameters('keyVaultSSLCertDataSecretName')]"
+                    },
+                    "secretNameforCertificatePassword": {
+                        "value": "[parameters('keyVaultSSLCertPasswordSecretName')]"
+                    },
+                    "sku": {
+                        "value": "[parameters('keyVaultSku')]"
+                    },
                     "subjectName": {
                         "value": "[format('CN={0}', if(parameters('enableDNSConfiguration'), format('{0}.{1}', parameters('dnsNameforApplicationGateway'), parameters('dnszoneName')), variables('const_azureSubjectName')))]"
                     },
                     "useExistingAppGatewaySSLCertificate": {
-                        "value": "[parameters('useExistingAppGatewaySSLCertificate')]"
+                        "value": "[if(equals(parameters('appGatewayCertificateOption'),variables('const_appGatewaySSLCertOptionHaveCert')), true(), false())]"
                     }
                 }
             }
@@ -555,17 +569,14 @@
                     "adminVMName": {
                         "value": "[parameters('adminVMName')]"
                     },
+                    "appGatewayCertificateOption": {
+                        "value": "[parameters('appGatewayCertificateOption')]"
+                    },
                     "domainLabelforApplicationGateway": {
                         "value": "[variables('name_domainLabelforApplicationGateway')]"
                     },
                     "gatewayPublicIPAddressName": {
                         "value": "[parameters('gatewayPublicIPAddressName')]"
-                    },
-                    "hasAppGatewaySSLCertificate": {
-                        "value": "[parameters('useExistingAppGatewaySSLCertificate')]"
-                    },
-                    "hasKeyVaultForAppGateway": {
-                        "value": "[parameters('hasKeyVaultForAppGateway')]"
                     },
                     "keyVaultName": {
                         "value": "[parameters('keyVaultName')]"
@@ -580,7 +591,7 @@
                         "value": "[parameters('keyVaultSSLCertDataSecretName')]"
                     },
                     "keyVaultSSLCertDataSecretNamefromDeploymentOutput": {
-                        "value": "[reference('keyVaultLinkedTemplate', '${azure.apiVersion}').outputs.secretNameForCertData.value]"
+                        "value": "[reference('keyVaultLinkedTemplate', '${azure.apiVersion}').outputs.sslCertDataSecretName.value]"
                     },
                     "keyVaultSSLCertPasswordSecretName": {
                         "value": "[parameters('keyVaultSSLCertPasswordSecretName')]"

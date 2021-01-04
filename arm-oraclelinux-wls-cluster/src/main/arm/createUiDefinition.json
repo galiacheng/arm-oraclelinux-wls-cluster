@@ -302,7 +302,7 @@
                                 },
                                 {
                                     "label": "Generate a certificate",
-                                    "value": "haveNoCertOrKeyVault"
+                                    "value": "generateCert"
                                 }
                             ],
                             "required": true

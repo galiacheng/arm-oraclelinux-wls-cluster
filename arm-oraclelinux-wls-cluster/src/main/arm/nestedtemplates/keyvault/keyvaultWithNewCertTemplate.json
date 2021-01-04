@@ -42,6 +42,13 @@
                 "description": "Used to name the new certificate resource."
             }
         },
+        "sku": {
+            "type": "string",
+            "metadata": {
+                "description": "Price tier for Key Vault."
+            },
+            "defaultValue": "Standard"
+        },
         "subjectName": {
             "type": "string",
             "metadata": {
@@ -83,7 +90,7 @@
             "properties": {
                 "sku": {
                     "family": "A",
-                    "name": "Standard"
+                    "name": "[parameters('sku')]"
                 },
                 "tenantId": "[subscription().tenantId]",
                 "accessPolicies": [
