@@ -55,14 +55,14 @@
             }
         },
         "appGatewayCertificateOption": {
-            "defaultValue": "",
+            "defaultValue": "haveCert",
             "type": "string",
             "metadata": {
                 "description": "Three scenarios we support for deploying app gateway"
             },
             "allowedValues": [
-                "haveKeyVault",
                 "haveCert",
+                "haveKeyVault",
                 "generateCert"
             ]
         },
