@@ -288,12 +288,12 @@
                         "name": "certificateOption",
                         "type": "Microsoft.Common.OptionsGroup",
                         "label": "Select your current usage of Azure Key Vault",
-                        "defaultValue": "haveCert",
+                        "defaultValue": "Upload a SSL certificate",
                         "toolTip": "Select your current usage of Azure Key Vault",
                         "constraints": {
                             "allowedValues": [
                                 {
-                                    "label": "Have a SSL certificate only",
+                                    "label": "Upload a SSL certificate",
                                     "value": "haveCert"
                                 },
                                 {
