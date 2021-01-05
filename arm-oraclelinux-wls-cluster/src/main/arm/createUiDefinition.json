@@ -277,7 +277,7 @@
                         "type": "Microsoft.Common.TextBlock",
                         "visible": "[steps('section_appGateway').enableAppGateway]",
                         "options": {
-                            "text": "App Gateway integration requires an SSL Certificate to enable SSL termination at the gateway.  End-to-end SSL encryption is not supported by the template.  The template will look for the certificate and its password in the Azure KeyVault specified here.",
+                            "text": "App Gateway integration requires a SSL certificate to enable SSL termination at the gateway.  There are three SSL certificate usage available. Upload a SSL certificate: the template will store the certificate to an Azure Key Vault and retrieve it during the gateway deployment.  Have a Azure Key Vault with a SSL certificate stored: the template will look for the certificate and its password in the Azure KeyVault specified here. Generate a self-signed certificate: the tamplate will generate a self signed certificate and apply it during the gateway deployment.",
                             "link": {
                                 "label": "Learn more",
                                 "uri": "https://aka.ms/arm-oraclelinux-wls-cluster-app-gateway-key-vault"
@@ -287,9 +287,9 @@
                     {
                         "name": "certificateOption",
                         "type": "Microsoft.Common.OptionsGroup",
-                        "label": "Select your current usage of Azure Key Vault",
+                        "label": "Select your current usage of SSL Certificate",
                         "defaultValue": "Upload a SSL certificate",
-                        "toolTip": "Select your current usage of Azure Key Vault",
+                        "toolTip": "Select your current usage of SSL Certificate",
                         "constraints": {
                             "allowedValues": [
                                 {
@@ -301,7 +301,7 @@
                                     "value": "haveKeyVault"
                                 },
                                 {
-                                    "label": "Generate a certificate",
+                                    "label": "Generate a self-signed certificate",
                                     "value": "generateCert"
                                 }
                             ],
@@ -394,6 +394,34 @@
                             "validationMessage": "The value must be 1-30 characters long and must only contain letters and numbers."
                         },
                         "visible": "[equals(steps('section_appGateway').certificateOption, 'haveKeyVault')]"
+                    },
+                    {
+                        "name": "deplymentScriptInfo",
+                        "type": "Microsoft.Common.TextBlock",
+                        "options": {
+                            "text": "This option will create a self signed SSL certificate for Application Gateway. We need a user-assigned managed identity to create self signed certificate. You have to add at least one identify with permission to create/update Azure Key Vault.",
+                            "link": {
+                                "label": "Learn more",
+                                "uri": "https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deployment-script-template"
+                            }
+                        },
+						"visible": "[equals(steps('section_appGateway').certificateOption, 'generateCert')]"
+                    },
+                    {
+                        "name": "gatewayIdentity",
+                        "type": "Microsoft.ManagedIdentity.IdentitySelector",
+                        "label": "Managed Identity Configuration",
+                        "toolTip": {
+                            "userAssignedIdentity": "Add user assigned identities to grant the resource access to Azure resources."
+                        },
+                        "defaultValue": {
+                            "systemAssignedIdentity": "Off"
+                        },
+                        "options": {
+                            "hideSystemAssignedIdentity":true,
+                            "hideUserAssignedIdentity": false
+                        },
+                        "visible": "[equals(steps('section_appGateway').certificateOption, 'generateCert')]"
                     }
                 ],
                 "visible": true
@@ -458,8 +486,7 @@
                                             "label": "No",
                                             "value": false
                                         }
-                                    ],
-                                    "required": false
+                                    ]
                                 }
                             },
                             {
@@ -509,13 +536,32 @@
                                 },
                                 "visible": "[bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone)]"
                             },
+							{
+                                "name": "reuseIdentity",
+                                "type": "Microsoft.Common.OptionsGroup",
+                                "label": "Use the same Managed Identity seleted previousely?",
+                                "defaultValue": "Yes",
+                                "toolTip": "Select 'Yes' to reuse the Managed Identity seleted previousely, 'No' to input a new identity.",
+                                "constraints": {
+                                    "allowedValues": [
+                                        {
+                                            "label": "Yes",
+                                            "value": true
+                                        },
+                                        {
+                                            "label": "No",
+                                            "value": false
+                                        }
+                                    ]
+                                },
+								"visible": "[and(greater(length(steps('section_appGateway').gatewayIdentity.userAssignedIdentities),0), bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone))]"
+                            },
                             {
-                                "name": "identity",
+                                "name": "dnsIdentity",
                                 "type": "Microsoft.ManagedIdentity.IdentitySelector",
                                 "label": "Managed Identity Configuration",
                                 "toolTip": {
-                                    "systemAssignedIdentity": "Enable system assigned identity to grant the resource access to existing DNS Zone resources.",
-                                    "userAssignedIdentity": "Add user assigned identities to grant the resource access to existing DNS Zone resources."
+                                    "userAssignedIdentity": "Add user assigned identities to grant the resource access to Azure resources."
                                 },
                                 "defaultValue": {
                                     "systemAssignedIdentity": "Off"
@@ -524,7 +570,7 @@
                                     "hideSystemAssignedIdentity":true,
                                     "hideUserAssignedIdentity": false
                                 },
-                                "visible": "[bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone)]"
+                                "visible": "[if(greater(length(steps('section_appGateway').gatewayIdentity.userAssignedIdentities),0),and(equals(steps('section_dnsConfiguration').customDNSSettings.reuseIdentity, false), bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone)), bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone))]"
                             }
                         ]
                     }
@@ -1085,7 +1131,12 @@
             "adminPasswordOrKey": "[basics('basicsRequired').adminPasswordOrKey]",
             "adminUsername": "[basics('basicsRequired').adminUsername]",
             "databaseType": "[steps('section_database').databaseConnectionInfo.databaseType]",
+            "appGatewayCertificateOption": "[steps('section_appGateway').certificateOption]",
+            "appGatewayIdentity":"[steps('section_appGateway').gatewayIdentity]",
+            "appGatewaySSLCertData": "[steps('section_appGateway').keyVaultSSLCertData]",
+            "appGatewaySSLCertPassword": "[steps('section_appGateway').appGatewaySSLCertPassword]",
             "dnsLabelPrefix": "[basics('basicsOptional').dnsLabelPrefix]",
+            "dnszoneIdentity":"[if(greater(length(steps('section_dnsConfiguration').customDNSSettings.dnsIdentity.userAssignedIdentities),0),steps('section_dnsConfiguration').customDNSSettings.dnsIdentity, steps('section_appGateway').gatewayIdentity)]",
             "dnszoneName": "[steps('section_dnsConfiguration').customDNSSettings.dnszoneName]",
             "dnszoneResourceGroup": "[steps('section_dnsConfiguration').customDNSSettings.dnsZoneResourceGroup]",
             "dsConnectionURL": "[steps('section_database').databaseConnectionInfo.dsConnectionURL]",
@@ -1101,16 +1152,12 @@
             "enableDB": "[bool(steps('section_database').enableDB)]",
             "enableDNSConfiguration": "[bool(steps('section_dnsConfiguration').enableCustomDNS)]",
             "enableELK": "[bool(steps('section_elk').enableELK)]",
-            "hasDNSZones": "[bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone)]",
-            "identity": "[steps('section_dnsConfiguration').customDNSSettings.identity]",
+            "hasDNSZones": "[bool(if(bool(steps('section_dnsConfiguration').enableCustomDNS), steps('section_dnsConfiguration').customDNSSettings.bringDNSZone, 'false'))]",
             "jdbcDataSourceName": "[steps('section_database').databaseConnectionInfo.jdbcDataSourceName]",
             "logsToIntegrate": "[steps('section_elk').elkInfo.logsToIntegrate]",
             "keyVaultName": "[steps('section_appGateway').keyVaultName]",
             "keyVaultSSLCertDataSecretName": "[steps('section_appGateway').keyVaultSSLCertDataSecretName]",
             "keyVaultSSLCertPasswordSecretName": "[steps('section_appGateway').keyVaultSSLCertPasswordSecretName]",
-            "appGatewayCertificateOption": "[steps('section_appGateway').certificateOption]",
-            "appGatewaySSLCertData": "[steps('section_appGateway').keyVaultSSLCertData]",
-            "appGatewaySSLCertPassword": "[steps('section_appGateway').appGatewaySSLCertPassword]",
             "managedServerPrefix": "[basics('basicsOptional').managedServerPrefix]",
             "numberOfCoherenceCacheInstances": "[int(if(bool(steps('section_coherence').enableCoherence),steps('section_coherence').coherenceInfo.numberOfCoherenceCacheInstances,'1'))]",
             "numberOfInstances": "[int(basics('basicsRequired').numberOfInstances)]",
