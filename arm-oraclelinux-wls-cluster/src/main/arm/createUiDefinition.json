@@ -396,16 +396,14 @@
                         "visible": "[equals(steps('section_appGateway').certificateOption, 'haveKeyVault')]"
                     },
                     {
-                        "name": "deplymentScriptInfo",
-                        "type": "Microsoft.Common.TextBlock",
+                        "name": "infoGatewayIndentity",
+                        "type": "Microsoft.Common.InfoBox",
+                        "visible": "[and(equals(steps('section_appGateway').certificateOption, 'generateCert'), less(length(steps('section_appGateway').gatewayIdentity.userAssignedIdentities), 1))]",
                         "options": {
-                            "text": "This option will create a self signed SSL certificate for Application Gateway. We need a user-assigned managed identity to create self signed certificate. You have to add at least one identify with permission to create/update Azure Key Vault.",
-                            "link": {
-                                "label": "Learn more",
-                                "uri": "https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deployment-script-template"
-                            }
-                        },
-						"visible": "[equals(steps('section_appGateway').certificateOption, 'generateCert')]"
+                            "icon": "Error",
+                            "text": "This option will create a self signed SSL certificate for gateway SSL termination. We use Azure deployment scripts to create a certificate. You have to add at least one user assigned identity to access Azure resources.",
+                            "uri": "https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deployment-script-template"
+                        }
                     },
                     {
                         "name": "gatewayIdentity",
@@ -515,7 +513,7 @@
                                 "name": "dnszoneName",
                                 "type": "Microsoft.Common.TextBox",
                                 "label": "DNS Zone Name",
-                                "defaultValue": "contoso.com",
+                                "defaultValue": "",
                                 "toolTip": "Use only letters and numbers and periods to separate Domains",
                                 "constraints": {
                                     "required": true,
@@ -539,7 +537,7 @@
 							{
                                 "name": "reuseIdentity",
                                 "type": "Microsoft.Common.OptionsGroup",
-                                "label": "Use the same Managed Identity seleted previousely?",
+                                "label": "Use the Managed Identity seleted previousely?",
                                 "defaultValue": "Yes",
                                 "toolTip": "Select 'Yes' to reuse the Managed Identity seleted previousely, 'No' to input a new identity.",
                                 "constraints": {
@@ -555,6 +553,16 @@
                                     ]
                                 },
 								"visible": "[and(greater(length(steps('section_appGateway').gatewayIdentity.userAssignedIdentities),0), bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone))]"
+                            },
+                            {
+                                "name": "infoDNSIndentity",
+                                "type": "Microsoft.Common.InfoBox",
+                                "visible": "[and(bool(steps('section_dnsConfiguration').customDNSSettings.bringDNSZone), less(length(steps('section_appGateway').gatewayIdentity.userAssignedIdentities),1), less(length(steps('section_dnsConfiguration').customDNSSettings.dnsIdentity.userAssignedIdentities), 1))]",
+                                "options": {
+                                    "icon": "Error",
+                                    "text": "This option will use Azure deployment scripts to update records to your Azure DNS Zone. You have to add at least one user assigned identity to access Azure resources.",
+                                    "uri": "https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deployment-script-template"
+                                }
                             },
                             {
                                 "name": "dnsIdentity",
@@ -1130,11 +1138,11 @@
             "aadsServerHost": "[steps('section_aad').aadInfo.aadsServerHost]",
             "adminPasswordOrKey": "[basics('basicsRequired').adminPasswordOrKey]",
             "adminUsername": "[basics('basicsRequired').adminUsername]",
-            "databaseType": "[steps('section_database').databaseConnectionInfo.databaseType]",
             "appGatewayCertificateOption": "[steps('section_appGateway').certificateOption]",
             "appGatewayIdentity":"[steps('section_appGateway').gatewayIdentity]",
             "appGatewaySSLCertData": "[steps('section_appGateway').keyVaultSSLCertData]",
             "appGatewaySSLCertPassword": "[steps('section_appGateway').appGatewaySSLCertPassword]",
+            "databaseType": "[steps('section_database').databaseConnectionInfo.databaseType]",
             "dnsLabelPrefix": "[basics('basicsOptional').dnsLabelPrefix]",
             "dnszoneIdentity":"[if(greater(length(steps('section_dnsConfiguration').customDNSSettings.dnsIdentity.userAssignedIdentities),0),steps('section_dnsConfiguration').customDNSSettings.dnsIdentity, steps('section_appGateway').gatewayIdentity)]",
             "dnszoneName": "[steps('section_dnsConfiguration').customDNSSettings.dnszoneName]",
