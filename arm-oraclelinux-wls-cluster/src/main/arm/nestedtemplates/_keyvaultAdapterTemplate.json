@@ -62,15 +62,28 @@
             "defaultValue": "Standard"
         },
         "subjectName": {
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "Subject name to create a certificate."
+            }
         },
         "useExistingAppGatewaySSLCertificate": {
             "type": "bool",
-            "defaultValue": false
+            "defaultValue": false,
+            "metadata": {
+                "description": "If false, will create a certificate."
+            }
+        },
+        "utcNow": {
+            "type": "string",
+            "defaultValue": "[utcNow()]",
+            "metadata": {
+                "description": "Returns the current (UTC) datetime value in the ISO 8601 format."
+            }
         }
     },
     "variables": {
-        "const_keyVaultName": "[take(concat('wls-kv', utcNow(), uniqueString(resourceGroup().id, deployment().name)), 24)]",
+        "const_keyVaultName": "[take(concat('wls-kv', parameters('utcNow'), uniqueString(resourceGroup().id, deployment().name)), 24)]",
         "name_kvWithExistingCertTemplateName": "_keyvaultWithExistingCertTemplate.json",
         "name_kvWithNewCertTemplateName": "_keyvaultWithNewCertTemplate.json",
         "name_kvTempaltesFolder": "_keyvault",
