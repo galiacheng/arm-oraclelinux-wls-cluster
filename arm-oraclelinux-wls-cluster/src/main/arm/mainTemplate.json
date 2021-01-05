@@ -128,7 +128,7 @@
         },
         "dnszoneResourceGroup": {
             "type": "string",
-            "defaultValue": "[resourceGroup()]"
+            "defaultValue": "[resourceGroup().name]"
         },
         "elasticsearchEndpoint": {
             "type": "string",
