@@ -288,17 +288,17 @@
                         "name": "certificateOption",
                         "type": "Microsoft.Common.OptionsGroup",
                         "label": "Select your current usage of Azure Key Vault",
-                        "defaultValue": "haveKeyVault",
+                        "defaultValue": "haveCert",
                         "toolTip": "Select your current usage of Azure Key Vault",
                         "constraints": {
                             "allowedValues": [
                                 {
-                                    "label": "Have a Azure Key Vault with a SSL certificate stored",
-                                    "value": "haveKeyVault"
-                                },
-                                {
                                     "label": "Have a SSL certificate only",
                                     "value": "haveCert"
+                                },
+                                {
+                                    "label": "Have a Azure Key Vault with a SSL certificate stored",
+                                    "value": "haveKeyVault"
                                 },
                                 {
                                     "label": "Generate a certificate",
@@ -326,24 +326,21 @@
                         "visible": "[equals(steps('section_appGateway').certificateOption, 'haveCert')]"
                     },
                     {
-                        "name": "keyVaultSSLCertPassword",
-                        "type": "Microsoft.Compute.CredentialsCombo",
+                        "name": "appGatewaySSLCertPassword",
+                        "type": "Microsoft.Common.PasswordBox",
                         "label": {
                             "password": "Password",
                             "confirmPassword": "Confirm password"
                         },
-                        "toolTip": {
-                            "password": "SSL certificate password"
-                        },
+                        "toolTip": "SSL certificate password",
                         "constraints": {
-                            "required": true,
-                            "customPasswordRegex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
-                            "customValidationMessage": "The password must be alphanumeric, contain at least 12 characters, and have at least 1 letter and 1 number."
+                            "required": "[equals(steps('section_appGateway').certificateOption, 'haveCert')]",
+                            "regex": "^((?=.*[0-9])(?=.*[a-z])|(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])|(?=.*[0-9])(?=.*[a-z])(?=.*[!@#$%^&*])|(?=.*[0-9])(?=.*[A-Z])(?=.*[!@#$%^&*])|(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*])).{6,128}$",
+                            "validationMessage": "The password must contain at least 6 characters, with at least 1 uppercase letter, 1 lowercase letter and 1 number."
                         },
                         "options": {
                             "hideConfirmation": false
                         },
-                        "osPlatform": "Windows",
                         "visible": "[equals(steps('section_appGateway').certificateOption, 'haveCert')]"
                     },
                     {
@@ -1111,9 +1108,9 @@
             "keyVaultName": "[steps('section_appGateway').keyVaultName]",
             "keyVaultSSLCertDataSecretName": "[steps('section_appGateway').keyVaultSSLCertDataSecretName]",
             "keyVaultSSLCertPasswordSecretName": "[steps('section_appGateway').keyVaultSSLCertPasswordSecretName]",
-            "certificateOption": "[steps('section_appGateway').certificateOption]",
-            "keyVaultSSLCertData": "[steps('section_appGateway').keyVaultSSLCertData]",
-            "keyVaultSSLCertPassword": "[steps('section_appGateway').keyVaultSSLCertPassword]",
+            "appGatewayCertificateOption": "[steps('section_appGateway').certificateOption]",
+            "appGatewaySSLCertData": "[steps('section_appGateway').keyVaultSSLCertData]",
+            "appGatewaySSLCertPassword": "[steps('section_appGateway').appGatewaySSLCertPassword]",
             "managedServerPrefix": "[basics('basicsOptional').managedServerPrefix]",
             "numberOfCoherenceCacheInstances": "[int(if(bool(steps('section_coherence').enableCoherence),steps('section_coherence').coherenceInfo.numberOfCoherenceCacheInstances,'1'))]",
             "numberOfInstances": "[int(basics('basicsRequired').numberOfInstances)]",

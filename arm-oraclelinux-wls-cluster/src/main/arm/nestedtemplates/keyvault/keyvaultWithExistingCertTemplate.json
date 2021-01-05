@@ -103,7 +103,7 @@
             "type": "string",
             "value": "[parameters('certificateDataName')]"
         },
-        "secretNameForCertPassword": {
+        "sslCertPwdSecretName": {
             "type": "string",
             "value": "[parameters('certificatePasswordName')]"
         }

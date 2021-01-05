@@ -75,7 +75,7 @@
         },
         "appGatewaySSLCertPassword": {
             "defaultValue": "",
-            "type": "string",
+            "type": "securestring",
             "metadata": {
                 "description": "The value of the password for the SSL Certificate"
             }
@@ -518,6 +518,9 @@
                     "_artifactsLocation": {
                         "value": "[parameters('_artifactsLocation')]"
                     },
+                    "_artifactsLocationSasToken": {
+                        "value": "[parameters('_artifactsLocationSasToken')]"
+                    },
                     "certificateDataValue": {
                         "value": "[parameters('appGatewaySSLCertData')]"
                     },
@@ -597,7 +600,7 @@
                         "value": "[parameters('keyVaultSSLCertPasswordSecretName')]"
                     },
                     "keyVaultSSLCertPasswordSecretNamefromDeploymentOutput": {
-                        "value": "[reference('keyVaultLinkedTemplate', '${azure.apiVersion}').outputs.secretNameForCertPassword.value]"
+                        "value": "[reference('keyVaultLinkedTemplate', '${azure.apiVersion}').outputs.sslCertPwdSecretName.value]"
                     },
                     "location": {
                         "value": "[parameters('location')]"

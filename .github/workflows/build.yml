@@ -4,6 +4,7 @@ on:
     branches:
       - develop
       - 20201202-hotfix
+      - zhengchang-cert-only
   schedule:
     - cron: "0 7 * * *"
   repository_dispatch:
