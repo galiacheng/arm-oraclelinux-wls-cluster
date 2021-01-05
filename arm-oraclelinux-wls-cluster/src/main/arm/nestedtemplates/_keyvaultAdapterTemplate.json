@@ -70,7 +70,7 @@
         }
     },
     "variables": {
-        "const_keyVaultName": "[concat('wls-kv-', uniqueString(resourceGroup().id, deployment().name))]",
+        "const_keyVaultName": "[take(concat('wls-kv', utcNow(), uniqueString(resourceGroup().id, deployment().name)), 24)]",
         "name_kvWithExistingCertTemplateName": "_keyvaultWithExistingCertTemplate.json",
         "name_kvWithNewCertTemplateName": "_keyvaultWithNewCertTemplate.json",
         "name_kvTempaltesFolder": "_keyvault",
