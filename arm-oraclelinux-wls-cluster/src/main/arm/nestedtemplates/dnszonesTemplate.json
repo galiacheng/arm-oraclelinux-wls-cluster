@@ -85,8 +85,9 @@
         }
     },
     "variables": {
-        "name_createDNSZoneLinkedTemplateName": "createDNSZonesTemplate.json",
-        "name_updateDNSZoneLinkedTemplateName": "updateDNSZonesTemplate.json"
+        "name_createDNSZoneLinkedTemplateName": "_createDNSZonesTemplate.json",
+        "name_dnszoneTempaltesFolder": "_dnszones",
+        "name_updateDNSZoneLinkedTemplateName": "_updateDNSZonesTemplate.json"
     },
     "resources": [
         {
@@ -111,7 +112,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/dnszones/', variables('name_createDNSZoneLinkedTemplateName')))]",
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/',variables('name_dnszoneTempaltesFolder'),'/', variables('name_createDNSZoneLinkedTemplateName')))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -141,7 +142,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/dnszones/', variables('name_updateDNSZoneLinkedTemplateName')))]",
+                    "uri": "[uri(parameters('_artifactsLocation'), concat('nestedtemplates/',variables('name_dnszoneTempaltesFolder'),'/', variables('name_updateDNSZoneLinkedTemplateName')))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {

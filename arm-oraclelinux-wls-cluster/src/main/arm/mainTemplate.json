@@ -422,15 +422,15 @@
         "const_azureSubjectName": "[format('{0}.{1}.{2}', variables('name_domainLabelforApplicationGateway'), parameters('location'),'.cloudapp.azure.com')]",
         "const_guidValue": "[guid(resourceGroup().id, deployment().name)]",
         "name_aadLinkedTemplateName": "aadNestedTemplate.json",
-        "name_appGatewayConnector": "keyvaultAppGatewayConnectorTemplate.json",
+        "name_appGatewayConnector": "_keyvaultAppGatewayConnectorTemplate.json",
         "name_clusterLinkedTemplateName": "clusterTemplate.json",
         "name_coherenceTemplateName": "coherenceTemplate.json",
         "name_dbLinkedTemplateName": "dbTemplate.json",
         "name_dnsNameforApplicationGateway": "[concat(parameters('dnsNameforApplicationGateway'), take(replace(variables('const_guidValue'),'-',''),6))]",
-        "name_dnszonesLinkedTemplateName": "dnszonesAdapterTemplate.json",
+        "name_dnszonesLinkedTemplateName": "dnszonesTemplate.json",
         "name_domainLabelforApplicationGateway": "[concat(variables('name_dnsNameforApplicationGateway'),'-',toLower(resourceGroup().name),'-',toLower(parameters('wlsDomainName')))]",
         "name_elkLinkedTemplateName": "elkNestedTemplate.json",
-        "name_keyVaultLinkedTemplateName": "keyvaultAdapterTemplate.json"
+        "name_keyVaultLinkedTemplateName": "_keyvaultAdapterTemplate.json"
     },
     "resources": [
         {
