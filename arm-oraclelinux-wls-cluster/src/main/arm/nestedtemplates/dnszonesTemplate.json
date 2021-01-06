@@ -29,11 +29,32 @@
                 "description": "An array of A record names. Used to create A records."
             }
         },
+        "dnszonesCNAMEAlias": {
+            "type": "array",
+            "metadata": {
+                "description": "An array of CNAME record alias. Used to create CNAME records."
+            },
+            "defaultValue": []
+        },
+        "dnszonesCNAMERecordSetNames": {
+            "type": "array",
+            "metadata": {
+                "description": "An array of A record names. Used to create CNAME record set."
+            },
+            "defaultValue": []
+        },
         "dnszoneName": {
             "defaultValue": "contoso.xyz",
             "type": "string",
             "metadata": {
                 "description": "Azure DNS Zone name."
+            }
+        },
+        "dnszoneLocation": {
+            "defaultValue": "global",
+            "type": "string",
+            "metadata": {
+                "description": "Location used to create Azure DNS Zone."
             }
         },
         "hasDNSZones": {
@@ -119,11 +140,17 @@
                     "dnszonesARecordSetNames": {
                         "value": "[parameters('dnszonesARecordSetNames')]"
                     },
+                    "dnszonesCNAMEAlias": {
+                        "value": "[parameters('dnszonesCNAMEAlias')]"
+                    },
+                    "dnszonesCNAMERecordSetNames": {
+                        "value": "[parameters('dnszonesCNAMERecordSetNames')]"
+                    },
                     "dnszoneName": {
                         "value": "[parameters('dnszoneName')]"
                     },
                     "location": {
-                        "value": "[parameters('location')]"
+                        "value": "[parameters('dnszoneLocation')]"
                     },
                     "targetResources": {
                         "value": "[parameters('targetResources')]"
@@ -154,6 +181,12 @@
                     },
                     "dnszonesARecordSetNames": {
                         "value": "[parameters('dnszonesARecordSetNames')]"
+                    },
+                    "dnszonesCNAMEAlias": {
+                        "value": "[parameters('dnszonesCNAMEAlias')]"
+                    },
+                    "dnszonesCNAMERecordSetNames": {
+                        "value": "[parameters('dnszonesCNAMERecordSetNames')]"
                     },
                     "dnszoneName": {
                         "value": "[parameters('dnszoneName')]"

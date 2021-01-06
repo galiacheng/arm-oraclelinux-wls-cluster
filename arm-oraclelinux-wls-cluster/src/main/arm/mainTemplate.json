@@ -920,7 +920,10 @@
                     "_artifactsLocationSasToken": {
                         "value": "[parameters('_artifactsLocationSasToken')]"
                     },
-                    "dnszonesARecordSetNames": {
+                    "dnszonesCNAMEAlias": {
+                        "value": "[createArray(if(parameters('enableAppGateway'), reference('keyVaultLinkedAppGatewayTemplate', '${azure.apiVersion}').outputs.appGatewayAlias.value, createArray()))]"
+                    },
+                    "dnszonesCNAMERecordSetNames": {
                         "value": "[createArray(if(parameters('enableAppGateway'), parameters('dnsNameforApplicationGateway'), createArray()))]"
                     },
                     "dnszoneName": {
@@ -937,9 +940,6 @@
                     },
                     "resourceGroup": {
                         "value": "[parameters('dnszoneResourceGroup')]"
-                    },
-                    "targetResources": {
-                        "value": "[createArray(if(parameters('enableAppGateway'), resourceId('Microsoft.Network/publicIPAddresses',parameters('gatewayPublicIPAddressName')), createArray()))]"
                     }
                 }
 

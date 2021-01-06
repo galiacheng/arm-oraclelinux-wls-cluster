@@ -391,9 +391,9 @@
 		}
 	],
 	"outputs": {
-		"appGatewayPublicIP": {
+		"appGatewayAlias": {
 			"type": "string",
-			"value": "[concat(reference(variables('ref_appGatewayPublicIP'), '${azure.apiVersion}').ipAddress)]"
+			"value": "[reference(variables('ref_appGatewayPublicIP'), '${azure.apiVersion}').dnsSettings.fqdn]"
 		},
 		"appGatewayURL": {
 			"type": "string",

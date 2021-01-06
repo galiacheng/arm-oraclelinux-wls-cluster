@@ -337,13 +337,13 @@
         }
     ],
     "outputs": {
-        "appGatewayPublicIP": {
+        "appGatewayAlias": {
             "type": "string",
             "value": "[if(equals(parameters('appGatewayCertificateOption'), variables('const_appGatewaySSLCertOptionHaveKeyVault')),
-                reference('appGatewaywithExistingKeyVaultTemplate', '${azure.apiVersion}').outputs.appGatewayPublicIP.value, 
+                reference('appGatewaywithExistingKeyVaultTemplate', '${azure.apiVersion}').outputs.appGatewayAlias.value, 
                 if(equals(parameters('appGatewayCertificateOption'),variables('const_appGatewaySSLCertOptionHaveCert')),
-                reference('appGatewaywithExistingSSLCertTemplate', '${azure.apiVersion}').outputs.appGatewayPublicIP.value, 
-                reference('appGatewaywithSelfSignedSSLCertTemplate', '${azure.apiVersion}').outputs.appGatewayPublicIP.value))]"
+                reference('appGatewaywithExistingSSLCertTemplate', '${azure.apiVersion}').outputs.appGatewayAlias.value, 
+                reference('appGatewaywithSelfSignedSSLCertTemplate', '${azure.apiVersion}').outputs.appGatewayAlias.value))]"
         },
         "appGatewayURL": {
             "type": "string",
