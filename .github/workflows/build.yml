@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - develop
+      - debug-webapp-failure
   schedule:
     - cron: "0 7 * * *"
   repository_dispatch:
@@ -218,10 +219,10 @@ jobs:
         images:
           [
             "owls-122130-jdk8-ol73;Oracle:weblogic-122130-jdk8-ol73:owls-122130-jdk8-ol7;latest",
-            "owls-122130-jdk8-ol74;Oracle:weblogic-122130-jdk8-ol74:owls-122130-jdk8-ol7;latest",
-            "owls-122140-jdk8-ol76;Oracle:weblogic-122140-jdk8-ol76:owls-122140-jdk8-ol7;latest",
-            "owls-141100-jdk8-ol76;Oracle:weblogic-141100-jdk8-ol76:owls-141100-jdk8-ol7;latest",
-            "owls-141100-jdk11-ol76;Oracle:weblogic-141100-jdk11-ol76:owls-141100-jdk11-ol7;latest",
+            # "owls-122130-jdk8-ol74;Oracle:weblogic-122130-jdk8-ol74:owls-122130-jdk8-ol7;latest",
+            # "owls-122140-jdk8-ol76;Oracle:weblogic-122140-jdk8-ol76:owls-122140-jdk8-ol7;latest",
+            # "owls-141100-jdk8-ol76;Oracle:weblogic-141100-jdk8-ol76:owls-141100-jdk8-ol7;latest",
+            # "owls-141100-jdk11-ol76;Oracle:weblogic-141100-jdk11-ol76:owls-141100-jdk11-ol7;latest",
           ]
     steps:
       - name: Checkout ${{ env.repoName }}
@@ -880,15 +881,15 @@ jobs:
             exit 1
           fi
 
-      - name: Delete Resource Group
-        id: delete-resource-group
-        if: always()
-        uses: azure/CLI@v1
-        with:
-          azcliversion: ${{ env.azCliVersion }}
-          inlineScript: |
-            echo "delete... " $resourceGroup
-            az group delete --yes --no-wait --verbose --name $resourceGroup
+      # - name: Delete Resource Group
+      #   id: delete-resource-group
+      #   if: always()
+      #   uses: azure/CLI@v1
+      #   with:
+      #     azcliversion: ${{ env.azCliVersion }}
+      #     inlineScript: |
+      #       echo "delete... " $resourceGroup
+      #       az group delete --yes --no-wait --verbose --name $resourceGroup
 
   cleanup:
     needs: deploy-weblogic-cluster
@@ -908,11 +909,11 @@ jobs:
         id: azure-login
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - name: Delete DB Resource Group
-        id: delete-db-resource-group
-        uses: azure/CLI@v1
-        with:
-          azcliversion: ${{ env.azCliVersion }}
-          inlineScript: |
-            echo "delete... " $resourceGroup
-            az group delete --yes --no-wait --verbose --name ${{ env.resourceGroupForDependency }}
+      # - name: Delete DB Resource Group
+      #   id: delete-db-resource-group
+      #   uses: azure/CLI@v1
+      #   with:
+      #     azcliversion: ${{ env.azCliVersion }}
+      #     inlineScript: |
+      #       echo "delete... " $resourceGroup
+      #       az group delete --yes --no-wait --verbose --name ${{ env.resourceGroupForDependency }}
