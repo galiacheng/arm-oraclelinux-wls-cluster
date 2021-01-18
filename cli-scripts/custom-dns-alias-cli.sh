@@ -2,32 +2,52 @@
 
 #
 # Description
-#  This script deletes managed nodes from an existing WebLogic Cluster and removes related Azure resources.
-#  It removes Azure resources including:
-#      * Virtual Machines that host deleting managed servers.
-#      * Data disks attached to the Virtual Machines
-#      * OS disks attached to the Virtual Machines
-#      * Network Interfaces added to the Virtual Machines
-#      * Public IPs added to the Virtual Machines
+#  This script is to configure custom DNS alias for Weblogic Server Administration Console and Application Gateway.
+#  It supports two scenarios:
+#      * If you have an Azure DNS Zone, create DNS alias for admin console and application gateway on the existing DNS Zone.
+#      * If you don’t have an Azure DNS Zone, create the DNS Zone in the same resource group of WebLogic cluster, and create DNS alias for admin console and application gateway.
 
 # Initialize
 script="${BASH_SOURCE[0]}"
 scriptDir="$(cd "$(dirname "${script}")" && pwd)"
 
 function usage() {
-  ###### U S A G E : Help and ERROR ######
   cat <<EOF
 Options:
-        --admim-vm-name           (Required)       The name of virtual machine that hosts WebLogic Admin Server
-        --admim-console-label     (Required)       Specify a lable to generate the DNS alias for WebLogic Administration Console
+        --admin-vm-name           (Required)       The name of virtual machine that hosts WebLogic Admin Server
+        --admin-console-label     (Required)       Specify a lable to generate the DNS alias for WebLogic Administration Console
         -f   --artifact-location  (Required)       ARM Template URL
         -g   --resource-group     (Required)       The name of resource group that has WebLogic cluster deployed
         -l   --location           (Required)       Location of current cluster resources.
         -z   --zone-name          (Required)       DNS Zone name
         --gateway-label           (Optional)       Specify a lable to generate the DNS alias for Application Gateway
-        --identity-id             (Optional)       Specify an Azure Managed User Identify to update DNS Zone
+        --identity-id             (Optional)       Specify an Azure Managed User Identity to update DNS Zone
         --zone-resource-group     (Optional)       The name of resource group that has WebLogic cluster deployed
         -h   --help
+
+Samples:
+        1. Configure DNS alias on an existing DNS Zone
+          ./custom-dns-alias-cli.sh \\
+            --resource-group <your-resource-group> \\
+            --admin-vm-name adminVM \\
+            --admin-console-label admin \\
+            --artifact-location <artifact-location> \\
+            --location eastus \\
+            --zone-name contoso.com \\
+            --gateway-label application \\
+            --identity-id <your-identity-id> \\
+            --zone-resource-group haiche-dns-test1
+
+        2. Configure DNS alias on a new DNS Zone
+          ./custom-dns-alias-cli.sh \\
+            --resource-group <your-resource-group> \\
+            --admin-vm-name adminVM \\
+            --admin-console-label admin \\
+            --artifact-location <artifact-location> \\
+            --location eastus \\
+            --zone-name contoso.com \\
+            --gateway-label application
+
 EOF
 }
 
@@ -50,7 +70,7 @@ function validateInput() {
       echo "ARM Tempalte exists: $templateURL"
     else
       echo "ARM Tempalte does not exist: $templateURL"
-      exit 1;
+      exit 1
     fi
   fi
   if [ -z "${zoneName}" ]; then
@@ -58,24 +78,24 @@ function validateInput() {
     exit 1
   fi
   if [ -z "${adminVMName}" ]; then
-    echo "Option --admim-vm-name is required."
+    echo "Option --admin-vm-name is required."
     exit 1
   fi
   if [ -z "${adminLabel}" ]; then
-    echo "Option --admim-console-label is required."
+    echo "Option --admin-console-label is required."
     exit 1
   fi
 
   if [ -n "${gatewayLabel}" ]; then
-    enableGateWay=true;
+    enableGateWay=true
   fi
 
   if [ -n "${zoneResourceGroup}" ]; then
-    hasDNSZone=true;
+    hasDNSZone=true
   fi
 }
 
-function queryAdminIPId(){
+function queryAdminIPId() {
   nicId=$(az graph query -q "Resources 
     | where type =~ 'microsoft.compute/virtualmachines' 
     | where name=~ '${adminVMName}' 
@@ -83,11 +103,11 @@ function queryAdminIPId(){
     | extend nics=array_length(properties.networkProfile.networkInterfaces) 
     | mv-expand nic=properties.networkProfile.networkInterfaces 
     | where nics == 1 or nic.properties.primary =~ 'true' or isempty(nic) 
-    | project nicId = tostring(nic.id)" -o tsv);
-  
-  if [ -z "${nicId}" ];then
+    | project nicId = tostring(nic.id)" -o tsv)
+
+  if [ -z "${nicId}" ]; then
     echo "Please make sure admin VM '${adminVMName}' exists in resource group '${resourceGroup}'. "
-    exit 1;
+    exit 1
   fi
 
   export adminIPId=$(az graph query -q "Resources 
@@ -98,13 +118,13 @@ function queryAdminIPId(){
     | where ipConfigsCount == 1 or ipconfig.properties.primary =~ 'true' 
     | project  publicIpId = tostring(ipconfig.properties.publicIPAddress.id)" -o tsv)
 
-  if [ -z "${adminIPId}" ];then
+  if [ -z "${adminIPId}" ]; then
     echo "Can not query public IP of admin VM. Please make sure admin VM '${adminVMName}' exists in resource group '${resourceGroup}'. "
-    exit 1;
+    exit 1
   fi
 }
 
-function queryAppgatewayAlias(){
+function queryAppgatewayAlias() {
   gatewayIPId=$(az graph query -q "Resources 
     | where type =~ 'microsoft.network/applicationGateways' 
     | where name=~ 'myAppGateway' 
@@ -113,20 +133,20 @@ function queryAppgatewayAlias(){
     | mv-expand ipconfig=properties.frontendIPConfigurations 
     | where ipConfigsCount == 1 or ipconfig.properties.primary =~ 'true' 
     | project  publicIpId = tostring(ipconfig.properties.publicIPAddress.id)" -o tsv)
-  
-  if [ -z "${gatewayIPId}" ];then
+
+  if [ -z "${gatewayIPId}" ]; then
     echo "Can not query public IP of gateway. Please make sure Application Gateway is enabled in resource group '${resourceGroup}'. "
-    exit 1;
+    exit 1
   fi
 
   export gatewayAlias=$(az network public-ip show \
-              --id ${gatewayIPId} \
-              --query dnsSettings.fqdn -o tsv)
+    --id ${gatewayIPId} \
+    --query dnsSettings.fqdn -o tsv)
 }
 
-function generateParameterFile(){
-  export parametersPath=parameters.json;
-  cat <<EOF > ${parametersPath}
+function generateParameterFile() {
+  export parametersPath=parameters.json
+  cat <<EOF >${parametersPath}
 {
     "\$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
     "contentVersion": "1.0.0.0",
@@ -144,10 +164,9 @@ function generateParameterFile(){
         },
 EOF
 
-
-  if [ "${enableGateWay}" == "true" ];then
+  if [ "${enableGateWay}" == "true" ]; then
     echo "${enableGateWay} ....."
-cat <<EOF >>${parametersPath}
+    cat <<EOF >>${parametersPath}
         "dnszonesCNAMEAlias": {
             "value": [
               "${gatewayAlias}"
@@ -160,7 +179,7 @@ cat <<EOF >>${parametersPath}
         },
 EOF
   else
-cat <<EOF >>${parametersPath}
+    cat <<EOF >>${parametersPath}
         "dnszonesCNAMEAlias": {
             "value": [
             ]
@@ -172,7 +191,7 @@ cat <<EOF >>${parametersPath}
 EOF
   fi
 
-cat <<EOF >>${parametersPath}
+  cat <<EOF >>${parametersPath}
         "dnszoneName": {
             "value": "${zoneName}"
         },
@@ -203,37 +222,39 @@ cat <<EOF >>${parametersPath}
 EOF
 }
 
-function invoke(){
-  
+function invoke() {
+  # validate the template
   az deployment group validate --verbose \
     --resource-group ${resourceGroup} \
     --parameters @${parametersPath} \
     --template-uri ${templateURL}
 
+  # invoke the template
   az deployment group create --verbose \
     --resource-group ${resourceGroup} \
     --parameters @${parametersPath} \
     --template-uri ${templateURL} \
     --name "configure-custom-dns-alias-$(date +"%s")"
 
-    if [ $? -eq 1 ];then
-      exit 1;
-    fi
+  # exit if error happens
+  if [ $? -eq 1 ]; then
+    exit 1
+  fi
 }
 
-function cleanup(){
+function cleanup() {
   rm -f ${parametersPath}
 }
 
-function printSummary(){
+function printSummary() {
   echo ""
   echo ""
   echo "
 DONE!
   "
-  if [ "${hasDNSZone}" == "false" ];then
-  nameServers=$(az network dns zone show -g ${resourceGroup} --name ${zoneName} --query nameServers)
-  echo "
+  if [ "${hasDNSZone}" == "false" ]; then
+    nameServers=$(az network dns zone show -g ${resourceGroup} --name ${zoneName} --query nameServers)
+    echo "
 Action required:
   Complete Azure DNS delegation to make the alias accessible.
   Reference: https://aka.ms/dns-domain-delegatio
@@ -249,7 +270,7 @@ Custom DNS alias:
     WebLogic Server Administration Console secured URL: https://${adminLabel}.${zoneName}:7002/console
   "
 
-  if [ "${enableGateWay}" == "true" ];then
+  if [ "${enableGateWay}" == "true" ]; then
     echo "
     Application Gateway URL: http://${gatewayLabel}.${zoneName}
     Application Gateway secured URL: https://${gatewayLabel}.${zoneName}
@@ -271,8 +292,8 @@ for arg in "$@"; do
   "--resource-group") set -- "$@" "-g" ;;
   "--artifact-location") set -- "$@" "-f" ;;
   "--zone-name") set -- "$@" "-z" ;;
-  "--admim-vm-name") set -- "$@" "-m" ;;
-  "--admim-console-label") set -- "$@" "-c" ;;
+  "--admin-vm-name") set -- "$@" "-m" ;;
+  "--admin-console-label") set -- "$@" "-c" ;;
   "--gateway-label") set -- "$@" "-w" ;;
   "--zone-resource-group") set -- "$@" "-r" ;;
   "--identity-id") set -- "$@" "-i" ;;
@@ -309,12 +330,10 @@ shift $(expr $OPTIND - 1) # remove options from positional parameters
 validateInput
 cleanup
 queryAdminIPId
-if [ ${enableGateWay} ];then
+if [ ${enableGateWay} ]; then
   queryAppgatewayAlias
 fi
 generateParameterFile
 invoke
 cleanup
 printSummary
-	
-
