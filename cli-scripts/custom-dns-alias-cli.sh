@@ -146,7 +146,7 @@ function queryAppgatewayAlias() {
 
 function generateParameterFile() {
   export parametersPath=parameters.json
-  cat <<EOF >${parametersPath}
+  cat <<EOF >${scriptDir}/${parametersPath}
 {
     "\$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
     "contentVersion": "1.0.0.0",
@@ -166,7 +166,7 @@ EOF
 
   if [ "${enableGateWay}" == "true" ]; then
     echo "${enableGateWay} ....."
-    cat <<EOF >>${parametersPath}
+    cat <<EOF >>${scriptDir}/${parametersPath}
         "dnszonesCNAMEAlias": {
             "value": [
               "${gatewayAlias}"
@@ -179,7 +179,7 @@ EOF
         },
 EOF
   else
-    cat <<EOF >>${parametersPath}
+    cat <<EOF >>${scriptDir}/${parametersPath}
         "dnszonesCNAMEAlias": {
             "value": [
             ]
@@ -191,7 +191,7 @@ EOF
 EOF
   fi
 
-  cat <<EOF >>${parametersPath}
+  cat <<EOF >>${scriptDir}/${parametersPath}
         "dnszoneName": {
             "value": "${zoneName}"
         },
@@ -226,13 +226,13 @@ function invoke() {
   # validate the template
   az deployment group validate --verbose \
     --resource-group ${resourceGroup} \
-    --parameters @${parametersPath} \
+    --parameters @${scriptDir}/${parametersPath} \
     --template-uri ${templateURL}
 
   # invoke the template
   az deployment group create --verbose \
     --resource-group ${resourceGroup} \
-    --parameters @${parametersPath} \
+    --parameters @${scriptDir}/${parametersPath} \
     --template-uri ${templateURL} \
     --name "configure-custom-dns-alias-$(date +"%s")"
 
@@ -243,7 +243,7 @@ function invoke() {
 }
 
 function cleanup() {
-  rm -f ${parametersPath}
+  rm -f ${scriptDir}/${parametersPath}
 }
 
 function printSummary() {
@@ -325,7 +325,7 @@ while getopts "hg:f:z:m:c:w:r:i:l:" opt; do
   "l") location="$OPTARG" ;;
   esac
 done
-shift $(expr $OPTIND - 1) # remove options from positional parameters
+shift $(expr $OPTIND - 1)
 
 validateInput
 cleanup
