@@ -214,7 +214,7 @@ function invoke(){
     --resource-group ${resourceGroup} \
     --parameters @${parametersPath} \
     --template-uri ${templateURL} \
-    --name "configure-custom-dns-alias"
+    --name "configure-custom-dns-alias-$(date +"%s")"
 
     if [ $? -eq 1 ];then
       exit 1;
