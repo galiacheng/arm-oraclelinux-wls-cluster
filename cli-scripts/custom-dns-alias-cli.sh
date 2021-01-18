@@ -243,7 +243,9 @@ function invoke() {
 }
 
 function cleanup() {
-  rm -f ${scriptDir}/${parametersPath}
+  if test -f "${scriptDir}/${parametersPath}"; then
+    rm -f ${scriptDir}/${parametersPath}
+  fi
 }
 
 function printSummary() {
